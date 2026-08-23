@@ -1,0 +1,106 @@
+# ============================================================
+# 源站注册表 · 全国性源站（不受省份订阅控制，始终启用）
+# 最后核实: 2026-08（公开检索；接入前按 _template.yaml 普查清单执行）
+# ============================================================
+meta:
+  scope: national
+  updated: 2026-08-20
+
+sources:
+  - id: cn-guokao
+    name: 国家公务员局·中央机关考录专题
+    path: 2
+    tier: A
+    region: national
+    entry: https://bm.scs.gov.cn/            # 考录专题（公告+职位表+报名）
+    org_entry: http://www.scs.gov.cn/        # 国家公务员局官网
+    extractor: excel
+    schedule: {daily: 3, peak: hourly}
+    season: {peak_month: 10, note: "职位表 Excel 与公告同期发布，含学历/专业代码/政治面貌/应届等全字段"}
+    list_selector: null
+    status: pending_survey
+    notes: A 类解析器的首要适配对象；10 月公告季加密到每小时
+
+  - id: cn-jdwz
+    name: 军队人才网·全军统一招考文职人员
+    path: 7
+    tier: A
+    region: national
+    entry: https://www.81rc.81.cn/           # 域名以当年招考公告为准
+    extractor: excel
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 1, note: "统一招考约每年1月笔试，公告在前一年10~12月；另有各单位直接引才公告常年滚动"}
+    list_selector: null
+    status: pending_survey
+    notes: 发布统一职位表；双一流理学/工学/医学硕士免笔试规则在岗位来源类别字段中体现
+
+  - id: cn-guopin
+    name: 国聘平台（央企国企聚合）
+    path: 6
+    tier: B
+    region: national
+    entry: https://www.iguopin.com/
+    extractor: structured
+    schedule: {daily: 2}
+    season: {peak_month: 9, note: "秋招9-11月、春招3-4月为主"}
+    list_selector: null
+    status: pending_survey
+    notes: 国资委背景聚合平台，字段较规范；央企官网校招栏作为补充源后续按需追加
+
+  - id: cn-xibu
+    name: 大学生志愿服务西部计划官网
+    path: 9
+    tier: B
+    region: national
+    entry: https://xibu.youth.cn/
+    extractor: structured
+    schedule: {daily: 1}
+    season: {peak_month: 4, note: "招募季约3-5月，2026年计划招募5万名"}
+    list_selector: null
+    status: pending_survey
+    notes: 已核实域名（官网 gzdt 栏目承载报名指南等）；报名走团系统
+
+  - id: cn-tegang
+    name: 教育部·特岗计划实施通知（政策源）
+    path: 9
+    tier: B
+    region: national
+    entry: http://www.moe.gov.cn/srcsite/A10/s6991/   # 教育部教师工作司目录
+    extractor: structured
+    schedule: {daily: 1}
+    season: {peak_month: 5, note: "政策通知约每年5月；具体招聘由实施省份教育厅发布"}
+    list_selector: null
+    status: pending_survey
+    notes: >-
+      ⚠️ 特岗计划面向中西部实施省份；广东/山东/浙江三省均非特岗实施省，
+      订阅该三省的用户基本用不到此路径，本源仅作政策日历。若未来订阅
+      中西部省份，需在对应省 yaml 中追加该省教育厅招聘入口。
+
+  - id: cn-gaoxiaojob
+    name: 高校人才网（高校辅导员/行政岗聚合）
+    path: 10
+    tier: B
+    region: national
+    entry: https://www.gaoxiaojob.com/
+    extractor: structured
+    schedule: {daily: 2}
+    season: {peak_month: 12, note: "高校招聘季集中在12-1月与4-6月"}
+    list_selector: null
+    status: pending_survey
+    notes: 辅导员岗位的主聚合源；具体高校人事处官网为原发源，按需追加
+
+  - id: cn-chrm
+    name: 中国人力资源市场网（人社部官方公告聚合）
+    path: 4
+    tier: B
+    region: national
+    entry: https://chrm.mohrss.gov.cn/
+    extractor: structured
+    schedule: {daily: 2}
+    season: {peak_month: null, note: "常年滚动"}
+    list_selector: null
+    status: pending_survey
+    notes: >-
+      人社部官方聚合平台，转载各省事业单位/三支一扶/人才引进公告，
+      是 C 类散落源的最佳兜底与交叉验证源（已核实其转载广东/山东公告）。
+      去重规则：与省原发源撞车时保留原发链接，本源仅补缺。

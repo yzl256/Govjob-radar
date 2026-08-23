@@ -1,0 +1,91 @@
+# ============================================================
+# 源站注册表 · 模板与字段说明
+# 复制本文件为 <省份名>.yaml 后填写。欢迎 PR 补充新省份。
+# ============================================================
+#
+# ── 字段说明 ──────────────────────────────────────────────
+# id              全局唯一，建议 <省拼音缩写>-<路径缩写>-<序号>
+# name            源站/栏目 human-readable 名称
+# path            对应路径代码（见下）
+# tier            A=官方Excel职位表  B=平台型网站  C=散落公告(LLM抽取)
+# region          行政区划（national 或 省名；区县级源写完整层级）
+# entry           列表页/公告栏 URL（抓取入口）
+# apply_entry     报名系统入口（如有，仅展示用，不抓取）
+# extractor       excel | structured | llm | excel_or_llm
+# schedule        常规每日抓取次数；公告季按 season 提频
+# season          公告季提示（peak_month 大致月份 + note）
+# list_selector   列表页定位 CSS/XPath —— 普查后填写，null=未普查
+# status          pending_survey=仅核实到入口 | active=已接入 | broken=失效
+# notes           备注（改版历史、反爬、职位表形态等）
+#
+# ── 路径代码 ──────────────────────────────────────────────
+# 1选调生  2国考  3省考  4事业单位  5人才引进  6国企央企
+# 7军队文职  8三支一扶  9特岗/西部计划  10高校辅导员/社区工作者
+#
+# ── 普查清单（status 转 active 前必须完成）────────────────
+# [ ] entry 可访问、列表页结构记录（填 list_selector）
+# [ ] robots.txt 与反爬策略确认（限速参数回写 config/app.yaml）
+# [ ] 公告详情页结构确认（附件 Excel 下载链接定位方式）
+# [ ] 连续 3 天试抓无漏抓
+# ============================================================
+
+meta:
+  province: 模板省份
+  created: null
+  surveyed_by: null
+
+sources:
+  - id: xx-xuandiao
+    name: XX省选调生公告（省委组织部）
+    path: 1
+    tier: C
+    region: XX省
+    entry: null            # TODO: 普查后填
+    extractor: excel_or_llm
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 11, note: "一年一次，报名窗口常仅约1周，错过即无"}
+    list_selector: null
+    status: pending_survey
+    notes: ""
+
+  - id: xx-shengkao
+    name: XX省考试录用公务员公告
+    path: 3
+    tier: A
+    region: XX省
+    entry: null
+    apply_entry: null
+    extractor: excel
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 1, note: "以当年公告为准"}
+    list_selector: null
+    status: pending_survey
+    notes: "职位表为 Excel 附件，字段全，A 类解析器优先适配"
+
+  - id: xx-sydw
+    name: XX省事业单位公开招聘
+    path: 4
+    tier: C
+    region: XX省
+    entry: null
+    extractor: excel_or_llm
+    schedule: {daily: 2}
+    season: {peak_month: 3, note: "集中招聘一年1~2次；常年零散招聘走各地市源"}
+    list_selector: null
+    status: pending_survey
+    notes: ""
+
+  - id: xx-szyf
+    name: XX省三支一扶
+    path: 8
+    tier: C
+    region: XX省
+    entry: null
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: 4, note: "一年一次"}
+    list_selector: null
+    status: pending_survey
+    notes: ""
+
+  # 人才引进 / 社区工作者 / 高校辅导员：按市追加条目，region 写完整层级

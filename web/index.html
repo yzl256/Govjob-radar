@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>岗位雷达 · 体制内每日匹配</title>
+<style>
+  :root{
+    --paper:#f7f5f0; --card:#fffdf9; --ink:#26221c; --ink-2:#6b645a;
+    --line:#e5dfd3; --red:#c2410c; --green:#1a7f37; --amber:#b45309;
+    --serif:"Noto Serif SC","Source Han Serif SC","SimSun",serif;
+    --sans:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.65 var(--sans)}
+  main{max-width:780px;margin:0 auto;padding:28px 18px 80px}
+  header{border-bottom:3px double var(--line);padding-bottom:14px;margin-bottom:26px}
+  h1{font:700 26px/1.3 var(--serif);margin:0;letter-spacing:2px}
+  h1 .seal{color:var(--red)}
+  header p{margin:6px 0 0;color:var(--ink-2);font-size:13px}
+  h2{font:700 18px/1.4 var(--serif);margin:34px 0 12px;letter-spacing:1px}
+  h2::before{content:"「";color:var(--red)} h2::after{content:"」"}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px 16px}
+  .field label{display:block;font-size:12px;color:var(--ink-2);margin-bottom:4px}
+  input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;
+    background:#fff;font:14px var(--sans);color:var(--ink)}
+  input:focus,select:focus{outline:2px solid var(--red);outline-offset:1px;border-color:var(--red)}
+  fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 12px;padding:12px 14px;background:#fff}
+  legend{font-size:12px;color:var(--ink-2);padding:0 6px}
+  .edu-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .edu-head b{font:600 14px var(--serif)}
+  button{cursor:pointer;border-radius:6px;font:14px var(--sans)}
+  .btn{padding:9px 22px;border:1px solid var(--ink);background:var(--ink);color:#fff}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .linkish{border:none;background:none;color:var(--red);font-size:13px;padding:4px}
+  .provinces{display:flex;flex-wrap:wrap;gap:8px}
+  .provinces label{display:flex;align-items:center;gap:5px;border:1px solid var(--line);
+    border-radius:999px;padding:5px 13px;background:#fff;font-size:13px;cursor:pointer}
+  .provinces input{width:auto;accent-color:var(--red)}
+  .provinces input:checked+span{color:var(--red);font-weight:600}
+  .dfc-badge{font:12px var(--sans);margin-left:4px}
+  .dfc-badge.hit{color:var(--green)} .dfc-badge.miss{color:var(--ink-2)}
+  .actions{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+  .counts{display:flex;gap:10px;margin:14px 0 18px;flex-wrap:wrap}
+  .count{flex:1;min-width:120px;border-radius:8px;padding:10px 14px;border:1px solid var(--line);background:var(--card)}
+  .count b{font:700 22px var(--serif);display:block}
+  .count span{font-size:12px;color:var(--ink-2)}
+  .count.ok b{color:var(--green)} .count.warn b{color:var(--amber)} .count.bad b{color:var(--red)}
+  .job{border:1px solid var(--line);border-left:4px solid var(--green);border-radius:6px;
+    background:var(--card);padding:12px 14px;margin-bottom:10px}
+  .job.warn{border-left-color:var(--amber)}
+  .job h3{margin:0;font:600 15px var(--serif);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .tag{font:12px var(--sans);padding:1px 8px;border-radius:4px;color:#fff}
+  .tag.ok{background:var(--green)} .tag.warn{background:var(--amber)}
+  .meta{color:var(--ink-2);font-size:13px;margin-top:4px}
+  .meta .dl{color:var(--red);font-weight:600}
+  details{margin-top:8px}
+  summary{font-size:13px;color:var(--ink-2);cursor:pointer}
+  .reasons{margin:6px 0 0;padding:0;list-style:none;font-size:13px}
+  .reasons li{padding:2px 0;border-bottom:1px dashed var(--line)}
+  .reasons li:last-child{border:none}
+  .r-pass{color:var(--green)} .r-fail{color:var(--red)} .r-unknown{color:var(--amber)}
+  .attention{font-size:13px;color:var(--amber);margin-top:6px}
+  .empty{padding:40px 20px;text-align:center;color:var(--ink-2);border:1px dashed var(--line);border-radius:8px}
+  .filters{padding:12px 14px;margin-bottom:14px}
+  .frow{display:flex;gap:10px;flex-wrap:wrap}
+  .frow input[type=search]{flex:1;min-width:200px}
+  .frow select{width:auto}
+  .fpaths{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .fpaths label{display:flex;align-items:center;gap:4px;border:1px solid var(--line);
+    border-radius:999px;padding:3px 11px;background:#fff;font-size:12px;cursor:pointer;color:var(--ink-2)}
+  .fpaths input{width:auto;accent-color:var(--red);margin:0}
+  .fpaths input:checked+span{color:var(--red);font-weight:600}
+  .fmeta{font-size:12px;color:var(--ink-2);margin-top:10px}
+  .fmeta button{border:none;background:none;color:var(--red);font-size:12px;padding:0 4px}
+  .updated{font-size:12px;color:var(--ink-2);margin-left:auto;align-self:center}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--ink);color:#fff;
+    padding:10px 22px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.show{opacity:.95}
+  .toast.err{background:var(--red)}
+  .failsum{font-size:13px;color:var(--ink-2);margin-top:4px}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:8px 18px;border:1px solid var(--line);background:var(--card);color:var(--ink-2);
+    font:600 14px var(--sans);border-radius:999px}
+  .tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .tab .num{font:700 12px var(--mono);margin-left:4px;opacity:.85}
+  .tboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin-bottom:18px}
+  .tcard{border:1px solid var(--line);border-radius:8px;padding:13px 15px;background:var(--card)}
+  .tcard.open{border-left:4px solid var(--green)}
+  .tcard.prep{border-left:4px solid var(--amber)}
+  .thead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+  .thead b{font:600 15px var(--serif)}
+  .tbadge{font:12px var(--sans);padding:2px 9px;border-radius:999px;color:#fff;white-space:nowrap}
+  .tbadge.open{background:var(--green)} .tbadge.prep{background:var(--amber)}
+  .twin{font-size:13px;color:var(--red);font-weight:600;margin-bottom:4px}
+  .tcard.prep .twin{color:var(--amber)}
+  .tdesc,.tadvice{font-size:12.5px;color:var(--ink-2);margin-top:4px;line-height:1.55}
+  .tadvice::before{content:"➜ ";color:var(--red)}
+  .tnote{font-size:12.5px;color:var(--red);margin-top:6px;font-weight:600}
+  .prep-h{font:600 15px var(--serif);margin:22px 0 10px}
+  .job.archived{border-left-color:var(--ink-2);opacity:.88}
+  .job.archived h3 .tag{background:var(--ink-2)}
+  .llm-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);margin-bottom:12px}
+  .llm-dot{width:8px;height:8px;border-radius:50%;background:var(--ink-2);flex:none}
+  .llm-dot.on{background:var(--green)} .llm-dot.off{background:var(--red)}
+  .keyrow{position:relative}
+  .keyrow input{padding-right:64px;font-family:var(--mono)}
+  .keyrow .peek{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;
+    background:none;color:var(--ink-2);font-size:12px;padding:4px 6px;cursor:pointer}
+  .keyrow .peek:hover{color:var(--ink)}
+  .hint{font-size:12px;color:var(--ink-2);margin-top:4px}
+  .tresult{font-size:13px;margin-top:8px;min-height:1em}
+  .tresult.ok{color:var(--green)} .tresult.bad{color:var(--red)}
+  footer{margin-top:40px;color:var(--ink-2);font-size:12px;text-align:center;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>岗位<span class="seal">雷达</span></h1>
+    <p>体制内十条路径 · 每日抓取 · 三态匹配——你能报什么，为什么</p>
+  </header>
+
+  <section>
+    <h2>LLM 设置</h2>
+    <div class="card">
+      <div class="llm-status"><span class="llm-dot" id="llm-dot"></span><span id="llm-status-text">加载中…</span></div>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1"><label>API Key</label>
+          <div class="keyrow">
+            <input id="llm-key" type="password" placeholder="sk-…" autocomplete="off">
+            <button class="peek" id="llm-peek" type="button">显示</button>
+          </div>
+          <div class="hint">保存到后端 SQLite 数据库（data/govjob.db），仅本机存储。已保存的 Key 留空即不修改。</div>
+        </div>
+        <div class="field"><label>接口地址 Base URL</label>
+          <input id="llm-base" placeholder="https://api.deepseek.com" style="font-family:var(--mono)"></div>
+        <div class="field"><label>模型</label>
+          <input id="llm-model" placeholder="deepseek-chat" style="font-family:var(--mono)"></div>
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn" id="btn-llm-save">保存配置</button>
+        <button class="btn ghost" id="btn-llm-test">测试连接</button>
+        <span class="tresult" id="llm-result"></span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>我的档案</h2>
+    <div class="card">
+      <div class="grid">
+        <div class="field"><label>称呼</label><input id="f-name" placeholder="可留空"></div>
+        <div class="field"><label>性别</label>
+          <select id="f-gender"><option value="">未填</option><option>男</option><option>女</option></select></div>
+        <div class="field"><label>出生日期</label><input id="f-birth" type="date"></div>
+        <div class="field"><label>政治面貌</label>
+          <select id="f-political"><option value="">未填</option><option>党员</option><option>预备党员</option><option>团员</option><option>群众</option></select></div>
+        <div class="field"><label>毕业状态</label>
+          <select id="f-fresh"><option value="">未填</option><option>应届毕业生</option><option>择业期内未落实工作</option><option>往届</option></select></div>
+        <div class="field"><label>学生干部经历</label>
+          <select id="f-cadre"><option value="">未填</option><option value="true">有</option><option value="false">没有</option></select></div>
+        <div class="field"><label>校级以上表彰</label>
+          <select id="f-award"><option value="">未填</option><option value="true">有</option><option value="false">没有</option></select></div>
+        <div class="field"><label>户籍省份</label><input id="f-household" placeholder="如 广东省"></div>
+        <div class="field"><label>生源省份</label><input id="f-origin" placeholder="如 山东省"></div>
+      </div>
+
+      <fieldset id="edu-list"><legend>学历（按层次填，专业代码决定匹配精度）</legend></fieldset>
+      <button class="linkish" id="add-edu">＋ 添加一段学历</button>
+
+      <fieldset><legend>订阅省份（决定抓取哪些省的招聘公告）</legend>
+        <div class="provinces" id="provinces"></div>
+      </fieldset>
+
+      <div class="actions">
+        <button class="btn ghost" id="btn-save">保存档案</button>
+        <button class="btn" id="btn-match">立即匹配</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>匹配结果</h2>
+    <div class="tabs">
+      <button class="tab active" id="tab-apply">✅ 可报名投递<span class="num" id="tab-apply-n"></span></button>
+      <button class="tab" id="tab-prep">📚 待报名 · 备考看板</button>
+    </div>
+
+    <div id="pane-apply">
+      <div class="card filters" id="filters" hidden>
+        <div class="frow">
+          <input id="f-search" type="search" placeholder="搜索：职位 / 部门 / 地区…">
+          <select id="f-verdict">
+            <option value="">全部判定</option>
+            <option value="可报">✅ 可报</option>
+            <option value="信息不足">⚠ 待确认</option>
+          </select>
+        </div>
+        <div class="fpaths" id="f-paths"></div>
+        <div class="fmeta" id="f-count"></div>
+        <div class="updated" id="f-updated"></div>
+      </div>
+      <div id="results"><div class="empty">还没有跑过匹配——填好档案后点「立即匹配」。<br>岗位数据来自 data/inbox 里的职位表。</div></div>
+    </div>
+
+    <div id="pane-prep" hidden>
+      <div class="empty" id="prep-empty">先跑一次匹配。</div>
+      <div id="prep-body" hidden>
+        <div class="tboard" id="track-board"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>govjob-radar · 个人自用工具 · 匹配结果仅供参考，报名资格以公告原文为准</footer>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let META={provinces:[],paths:{}},EDU=[];
+
+function toast(msg,err){const t=$('toast');t.textContent=msg;t.className='toast show'+(err?' err':'');
+  clearTimeout(t._h);t._h=setTimeout(()=>t.className='toast',2600);}
+
+async function api(path,opts){const r=await fetch(path,opts);const data=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(data.error||r.status);return data;}
+
+function eduBlock(e,i){
+  const d=document.createElement('fieldset');
+  d.innerHTML=`<div class="edu-head"><b>学历 ${i+1}</b><button class="linkish" data-del>删除</button></div>
+  <div class="grid">
+    <div class="field"><label>层次</label><select data-k="level">
+      <option>本科</option><option>硕士</option><option>博士</option><option>大专</option></select></div>
+    <div class="field"><label>专业名称</label><input data-k="major_name" placeholder="如 大数据技术与工程"></div>
+    <div class="field"><label>专业代码</label><input data-k="major_code" placeholder="如 085411" style="font-family:var(--mono)"></div>
+    <div class="field"><label>目录</label><select data-k="catalog">
+      <option value="">自动判断</option><option value="undergraduate">本科目录</option>
+      <option value="academic">学术学位</option><option value="professional">专业学位</option></select></div>
+    <div class="field"><label>院校 <span class="dfc-badge" data-badge></span></label><input data-k="school" placeholder="如 某大学"></div>
+    <div class="field"><label>毕业时间</label><input data-k="graduation_date" type="date"></div>
+  </div>`;
+  d.querySelector('[data-k="level"]').value=e.level||'硕士';
+  d.querySelector('[data-k="major_name"]').value=e.major_name||'';
+  d.querySelector('[data-k="major_code"]').value=e.major_code||'';
+  d.querySelector('[data-k="catalog"]').value=e.catalog||'';
+  d.querySelector('[data-k="school"]').value=e.school||'';
+  d.querySelector('[data-k="graduation_date"]').value=e.graduation_date||'';
+  d.querySelector('[data-del]').onclick=()=>{EDU.splice(i,1);renderEdu();collectEdu();};
+  d.addEventListener('change',collectEdu);d.addEventListener('input',collectEdu);
+  // 双一流自动识别：院校输入停顿 400ms 后查知识表，徽标提示并把结果存入 EDU
+  const schoolInput=d.querySelector('[data-k="school"]');
+  const badge=d.querySelector('[data-badge]');
+  schoolInput._t=null;
+  schoolInput.addEventListener('input',()=>{
+    clearTimeout(schoolInput._t);
+    badge.className='dfc-badge';badge.textContent='';
+    const name=schoolInput.value.trim();
+    if(!name){EDU[i]&&(EDU[i].is_double_first_class=null);return;}
+    schoolInput._t=setTimeout(async()=>{
+      try{
+        const r=await api('/api/dfc?school='+encodeURIComponent(name));
+        if(r.double_first_class){badge.className='dfc-badge hit';badge.textContent='🎓 双一流';EDU[i].is_double_first_class=true;}
+        else{badge.className='dfc-badge miss';badge.textContent=r.matched?'':'未匹配';EDU[i].is_double_first_class=null;}
+      }catch(e){EDU[i].is_double_first_class=null;}
+    },400);
+  });
+  return d;
+}
+function renderEdu(){const box=$('edu-list');
+  box.querySelectorAll('fieldset').forEach(x=>x.remove());
+  EDU.forEach((e,i)=>box.appendChild(eduBlock(e,i)));}
+function collectEdu(){
+  $('edu-list').querySelectorAll('fieldset').forEach((d,i)=>{
+    const get=k=>d.querySelector(`[data-k="${k}"]`);
+    EDU[i]={level:get('level').value,major_name:get('major_name').value.trim(),
+      major_code:get('major_code').value.trim(),catalog:get('catalog').value||null,
+      school:get('school').value.trim(),
+      is_double_first_class:(EDU[i]&&EDU[i].is_double_first_class)??null,
+      graduation_date:get('graduation_date').value||null};});
+}
+
+function collectProfile(){
+  const s=id=>$(id).value;
+  return {name:s('f-name').trim()||'',gender:s('f-gender')||null,birth_date:s('f-birth')||null,
+    political_status:s('f-political')||null,fresh_status:s('f-fresh')||null,
+    is_student_cadre:s('f-cadre')===''?null:s('f-cadre')==='true',
+    has_school_award:s('f-award')===''?null:s('f-award')==='true',
+    household_province:s('f-household').trim()||null,origin_province:s('f-origin').trim()||null,
+    subscribed_provinces:[...document.querySelectorAll('#provinces input:checked')].map(x=>x.value),
+    education:EDU};
+}
+function fillProfile(p){
+  $('f-name').value=p.name||'';$('f-gender').value=p.gender||'';$('f-birth').value=p.birth_date||'';
+  $('f-political').value=p.political_status||'';$('f-fresh').value=p.fresh_status||'';
+  $('f-cadre').value=p.is_student_cadre==null?'':String(p.is_student_cadre);
+  $('f-award').value=p.has_school_award==null?'':String(p.has_school_award);
+  $('f-household').value=p.household_province||'';$('f-origin').value=p.origin_province||'';
+  document.querySelectorAll('#provinces input').forEach(x=>x.checked=(p.subscribed_provinces||[]).includes(x.value));
+  EDU=(p.education||[]).map(e=>({...e}));renderEdu();
+}
+
+function daysTo(d){if(!d)return null;const ms=new Date(d+'T23:59:59')-new Date();
+  return Math.ceil(ms/86400000);}
+function srcHtml(j){
+  const u=j.source_url||'';
+  if(u.startsWith('http'))return `<div class="meta"><a href="${u}" target="_blank" rel="noopener">公告原文 ↗</a></div>`;
+  if(u.startsWith('file://'))return `<div class="meta">来源职位表：${u.slice(7)}</div>`;  // 本地投放的 xlsx
+  return '';
+}
+function jobCard(j){
+  const warn=j.verdict==='信息不足';
+  const dl=daysTo(j.deadline);
+  const dlHtml=dl==null?'':` · 截止 <span class="${dl<=3?'dl':''}">${j.deadline}${dl<=3?`（仅剩${dl}天！）`:dl<=7?`（${dl}天）`:''}</span>`;
+  const reasons=j.reasons.map(r=>`<li class="r-${r.status}">${r.field}：${r.detail}</li>`).join('');
+  const att=(j.attention||[]).map(a=>`<div class="attention">⚠ ${a}</div>`).join('');
+  return `<div class="job ${warn?'warn':''}">
+    <h3><span class="tag ${warn?'warn':'ok'}">${warn?'⚠ 可能可报':'✅ 可报'}</span>${j.title}</h3>
+    <div class="meta">${j.employer} · ${j.path_name} · ${j.region||'—'}${j.quota?` · 招${j.quota}人`:''}${dlHtml}</div>
+    <details><summary>判定依据（${j.reasons.length} 项）</summary><ul class="reasons">${reasons}</ul></details>
+    ${att}${srcHtml(j)}
+  </div>`;
+}
+let LAST=null;  // 最近一次匹配结果（客户端筛选用）
+function switchTab(which){
+  const apply=which==='apply';
+  $('tab-apply').classList.toggle('active',apply);
+  $('tab-prep').classList.toggle('active',!apply);
+  $('pane-apply').hidden=!apply;$('pane-prep').hidden=apply;
+}
+$('tab-apply').onclick=()=>switchTab('apply');
+$('tab-prep').onclick=()=>switchTab('prep');
+
+function renderPrep(d){
+  const hasBoard=(d.track_board||[]).length>0;
+  $('prep-empty').hidden=hasBoard;$('prep-body').hidden=!hasBoard;
+  if(hasBoard){
+    const sorted=[...d.track_board].sort((a,b)=>a.phase===b.phase?a.path-b.path:(a.phase==='open'?-1:1));
+    $('track-board').innerHTML=sorted.map(t=>{
+      const badge=t.phase==='open'?'🟢 现在可投递':'📚 备考期';
+      const cd=t.countdown!=null?` · 距开启约 ${t.countdown} 天`:'';
+      return `<div class="tcard ${t.phase}">
+        <div class="thead"><b>${t.name}</b><span class="tbadge ${t.phase}">${badge}</span></div>
+        <div class="twin">${t.window}${cd}</div>
+        <div class="tdesc">${t.cycle}</div>
+        <div class="tdesc">${t.desc}</div>
+        ${t.user_note?`<div class="tnote">⚠ ${t.user_note}</div>`:''}
+        <div class="tadvice">${t.advice}</div>
+      </div>`;}).join('');
+  }
+}
+function renderMatch(d){
+  LAST=d;
+  $('tab-apply-n').textContent=(d.counts.eligible+d.counts.insufficient)||'0';
+  renderPrep(d);
+  if(!d.counts.jobs_total){$('results').innerHTML=`<div class="empty">职位表还没就位：把国考/省考职位表 xlsx 放进 data/inbox 后再匹配。<br>（当前解析失败文件 ${d.counts.bad_files} 个）</div>`;$('filters').hidden=true;return;}
+  // 路径筛选chips（一次性生成，保留勾选状态）
+  const box=$('f-paths');
+  if(!box.childElementCount){
+    box.innerHTML=Object.entries(META.paths).map(([k,v])=>
+      `<label><input type="checkbox" value="${k}" checked><span>${v}</span></label>`).join('');
+    box.addEventListener('change',applyFilters);
+    $('f-search').addEventListener('input',applyFilters);
+    $('f-verdict').addEventListener('change',applyFilters);
+  }
+  $('filters').hidden=false;
+  applyFilters();
+}
+function applyFilters(){
+  if(!LAST)return;
+  const q=$('f-search').value.trim().toLowerCase();
+  const verdict=$('f-verdict').value;
+  const paths=new Set([...document.querySelectorAll('#f-paths input:checked')].map(x=>x.value));
+  const all=LAST.eligible.concat(LAST.insufficient);
+  const hit=all.filter(j=>{
+    if(verdict&&j.verdict!==verdict)return false;
+    if(!paths.has(String(j.path)))return false;
+    if(q){const blob=(j.title+j.employer+(j.region||'')+j.path_name).toLowerCase();
+      if(!blob.includes(q))return false;}
+    return true;});
+  const c=LAST.counts;
+  const total=hit.length;
+  $('f-count').innerHTML=`筛选出 ${total} / ${all.length} 条（在招 ${c.jobs_total} 岗：可报 ${c.eligible} · 待确认 ${c.insufficient} · 不可报 ${c.ineligible}${c.archived_expired?` · 已截止存档 ${c.archived_expired}`:''}；本页仅展示报名截止日未过的岗位）`+
+    (q||verdict||paths.size<Object.keys(META.paths).length?` <button onclick="resetFilters()">重置</button>`:'');
+  $('results').innerHTML=total?hit.map(jobCard).join(''):
+    `<div class="empty">没有符合当前筛选的岗位——试试放宽条件。</div>`+
+    (LAST.top_fail_reasons.length?`<div class="failsum">不可报 ${c.ineligible} 条 · 主因：${LAST.top_fail_reasons.join('；')}</div>`:'');
+}
+function resetFilters(){
+  $('f-search').value='';$('f-verdict').value='';
+  document.querySelectorAll('#f-paths input').forEach(x=>x.checked=true);
+  applyFilters();
+}
+
+async function runMatch(){
+  const b=$('btn-match');b.disabled=true;b.textContent='匹配中…';
+  try{
+    let data;
+    try{data=await api('/api/match',{method:'POST'});}
+    catch(e1){  // 服务瞬时重启/连接抖动：自动重试一次
+      await new Promise(r=>setTimeout(r,800));
+      data=await api('/api/match',{method:'POST'});
+    }
+    renderMatch(data);
+    $('f-updated').textContent='数据更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+  }catch(e){toast('匹配失败：'+e.message+'（请确认服务在运行：python -m app.cli serve）',true);}
+  finally{b.disabled=false;b.textContent='立即匹配';}
+}
+
+$('add-edu').onclick=()=>{EDU.push({level:'硕士',major_name:'',major_code:'',catalog:null});renderEdu();collectEdu();};
+$('btn-save').onclick=async()=>{collectEdu();const b=$('btn-save');b.disabled=true;
+  try{await api('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(collectProfile())});toast('档案已保存 ✓');}
+  catch(e){toast('保存失败：'+e.message,true);}finally{b.disabled=false;}};
+$('btn-match').onclick=runMatch;
+
+// ── LLM 设置（保存到后端 SQLite）──────────────────────────
+$('llm-peek').onclick=()=>{const i=$('llm-key'),on=i.type==='password';
+  i.type=on?'text':'password';$('llm-peek').textContent=on?'隐藏':'显示';};
+function llmRender(cfg){
+  const dot=$('llm-dot'),txt=$('llm-status-text');
+  dot.className='llm-dot '+(cfg.configured?'on':'off');
+  txt.textContent=cfg.configured?`已配置 ${cfg.api_key_masked}${cfg.model?' · '+cfg.model:''}`:'未配置（C 类公告抽取将跳过）';
+  $('llm-base').value=cfg.base_url||'';$('llm-model').value=cfg.model||'';
+  $('llm-key').placeholder=cfg.configured?cfg.api_key_masked+'（留空不修改）':'sk-…';
+  $('llm-key').value='';
+}
+async function llmLoad(){try{llmRender(await api('/api/llm'));}catch(e){
+  $('llm-status-text').textContent='加载失败：'+e.message;}}
+$('btn-llm-save').onclick=async()=>{const b=$('btn-llm-save');b.disabled=true;b.textContent='保存中…';
+  const r=$('llm-result');r.textContent='';
+  try{
+    const body={base_url:$('llm-base').value.trim(),model:$('llm-model').value.trim()};
+    const key=$('llm-key').value.trim();if(key)body.api_key=key;  // 留空=保留原值
+    const saved=await api('/api/llm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    llmRender(saved.saved);toast('LLM 配置已保存到数据库 ✓');
+  }catch(e){toast('保存失败：'+e.message,true);}finally{b.disabled=false;b.textContent='保存配置';}};
+$('btn-llm-test').onclick=async()=>{const b=$('btn-llm-test');b.disabled=true;b.textContent='测试中…';
+  const r=$('llm-result');r.className='tresult';r.textContent='';
+  try{const t=await api('/api/llm/test',{method:'POST'});
+    r.className='tresult '+(t.ok?'ok':'bad');r.textContent=(t.ok?'✓ ':'✗ ')+t.detail;}
+  catch(e){r.className='tresult bad';r.textContent='✗ '+(e.message||'服务未启动');}
+  finally{b.disabled=false;b.textContent='测试连接';}};
+
+(async function init(){
+  try{
+    META=await api('/api/meta');
+    $('provinces').innerHTML=META.provinces.map(p=>
+      `<label><input type="checkbox" value="${p}"><span>${p}</span></label>`).join('');
+    fillProfile(await api('/api/profile'));
+    llmLoad();  // LLM 设置卡片（异步加载，不阻塞匹配）
+    await runMatch();  // 进入页面自动跑一次匹配，无需手动点击
+  }catch(e){toast('初始化失败：'+e.message,true);}
+})();
+</script>
+</body>
+</html>

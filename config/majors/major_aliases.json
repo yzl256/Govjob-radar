@@ -1,0 +1,58 @@
+{
+  "_comment": "专业别名表：岗位公告中的模糊专业写法 → 各目录下的代码集合。原则：宁缺勿滥（宁可判⚠️也不误判✅），收窄需人工确认，扩充由运营/社区沉淀。undergraduate 中 prefixes 为4位专业类或2位门类；academic/professional 中 codes 为4位一级学科/类别代码。",
+  "class_families": {
+    "_comment": "跨目录类族：本科专业类(4位) → 研究生层次同族代码。用于'类'要求跨学历解释（如计算机类(0809)岗，计算机硕士0812应可报）；未收录的类 → 匹配判⚠️而非❌。",
+    "0809": {"academic": ["0812", "0835", "0839"], "professional": ["0854"]},
+    "0807": {"academic": ["0809", "0810", "0811"], "professional": ["0854"]},
+    "0802": {"academic": ["0802"], "professional": ["0855"]},
+    "0301": {"academic": ["0301"], "professional": ["0351"]},
+    "1202": {"academic": ["1202"], "professional": ["1251", "1253", "1257"]}
+  },
+  "aliases": {
+    "计算机相关": {
+      "undergraduate": {"prefixes": ["0809"]},
+      "academic": {"codes": ["0812", "0835", "0839"], "prefixes": []},
+      "professional": {"codes": ["0854"], "prefixes": []}
+    },
+    "电子信息相关": {
+      "undergraduate": {"prefixes": ["0807"]},
+      "academic": {"codes": ["0809", "0810"], "prefixes": []},
+      "professional": {"codes": ["0854"], "prefixes": []}
+    },
+    "计算机与电子信息类": {
+      "undergraduate": {"prefixes": ["0807", "0809"]},
+      "academic": {"codes": ["0809", "0810", "0811", "0812", "0835", "0839"], "prefixes": []},
+      "professional": {"codes": ["0854"], "prefixes": []}
+    },
+    "经济金融类": {
+      "undergraduate": {"prefixes": ["0201", "0202", "0203", "0204"]},
+      "academic": {"codes": ["0201", "0202"], "prefixes": []},
+      "professional": {"codes": ["0251", "0252", "0253", "0254", "0255", "0256"], "prefixes": []}
+    },
+    "法学相关": {
+      "undergraduate": {"prefixes": ["0301"]},
+      "academic": {"codes": ["0301"], "prefixes": []},
+      "professional": {"codes": ["0351"], "prefixes": []}
+    },
+    "中文相关": {
+      "undergraduate": {"prefixes": ["0501"]},
+      "academic": {"codes": ["0501"], "prefixes": []},
+      "professional": {"codes": [], "prefixes": []}
+    },
+    "新闻传播相关": {
+      "undergraduate": {"prefixes": ["0503"]},
+      "academic": {"codes": ["0503"], "prefixes": []},
+      "professional": {"codes": ["0552", "0553"], "prefixes": []}
+    },
+    "财会与审计类": {
+      "undergraduate": {"prefixes": ["1202"]},
+      "academic": {"codes": ["1202"], "prefixes": []},
+      "professional": {"codes": ["1253", "1257"], "prefixes": []}
+    },
+    "教育相关": {
+      "undergraduate": {"prefixes": ["0401"]},
+      "academic": {"codes": ["0401"], "prefixes": []},
+      "professional": {"codes": ["0451"], "prefixes": []}
+    }
+  }
+}

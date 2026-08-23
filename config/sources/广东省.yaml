@@ -1,0 +1,220 @@
+# ============================================================
+# 源站注册表 · 广东省（用户订阅，勾选后启用）
+# 最后核实: 2026-08-23（真实源+真实 LLM 联调完成：3 条 2026 公告已入库）
+# ============================================================
+meta:
+  province: 广东省
+  adcode: "440000"
+  updated: 2026-08-23
+
+sources:
+  - id: gd-xuandiao
+    name: 广东选调生公告（省政府公示公告栏）
+    path: 1
+    tier: C
+    region: 广东省
+    entry: http://www.gd.gov.cn/zwgk/gsgg/          # 省政府官网·公示公告（已核实承载选调公告）
+    mirror_entry: https://www.gdzz.gov.cn/           # 广东组织工作网（省委组织部）
+    extractor: excel_or_llm
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 11, note: "近年公告约11月发布，报名窗口约1周"}
+    list_selector: null
+    status: surveyed
+    # 2026-08-23 普查：入口可达，锚文本命中"2026年度选调公告"（post_4807334）。
+    # 公告主文 LLM 抽取=计划级入口（专业/职位在附件职位表 Excel，待接 A 类解析）；
+    # 注意选调年龄分层（本科24/硕士放宽）公告原文为准，LLM 单值抽取可能取下限。
+    notes: 公告正文+职位表附件；报名入口在公告内给出
+
+  - id: gd-shengkao
+    name: 广东省考试录用公务员
+    path: 3
+    tier: A
+    region: 广东省
+    entry: http://www.gd.gov.cn/zwgk/gsgg/           # 公告发布栏
+    apply_entry: https://ggfw.hrss.gd.gov.cn/gwyks/  # 已核实：广东省公务员考试录用管理系统（考生报名）
+    extractor: excel
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 1, note: "近年约12月-1月公告，随即报名"}
+    list_selector: null
+    status: surveyed
+    # 2026-08-23 普查：入口可达（与选调共用省政府公示公告栏）；当前非招聘季无职位表附件，符合季节预期。
+    notes: 职位表为 Excel 附件，A 类解析对象；报名系统已核实可访问
+
+  - id: gd-sydw
+    name: 广东省事业单位集中公开招聘（省委组织部·事业单位人事管理栏）
+    path: 4
+    tier: C
+    region: 广东省
+    entry: https://www.gdzz.gov.cn/gbgz/sydwrsgl/    # 已核实承载"集中公开招聘高校毕业生"公告
+    extractor: excel_or_llm
+    schedule: {daily: 2}
+    season: {peak_month: 3, note: "集中招聘一年1~2次（2026年批次招聘11066人）"}
+    list_selector: null
+    status: surveyed
+    # 2026-08-23 普查：栏目页可达，"2026年集中公开招聘公告"（post_24573）已 LLM 入库（计划级：招11066人）。
+    # 具体岗位在岗位表附件，待接 A 类解析器展开为逐岗记录。
+    notes: 全省集中统考带岗位表；地市/区县零散招聘需后续按市追加源
+
+  - id: gd-szyf
+    name: 广东省高校毕业生三支一扶计划
+    path: 8
+    tier: C
+    region: 广东省
+    entry: https://hrss.gd.gov.cn/zwgk/gsgg/         # 已核实省人社厅公示公告栏承载招募公告
+    extractor: llm
+    schedule: {daily: 1, peak: daily3}
+    season: {peak_month: 4, note: "一年一次，近年约4月公告"}
+    list_selector: null
+    status: surveyed
+    # 2026-08-23 普查：入口可达，"2026年第二批三支一扶招募岗位公告"（post_4934261）已 LLM 入库。
+    notes: ""
+
+  # ── 国企央企（C类；招聘公告分散，省/市国资委集中发布栏 + 企业官网）──
+  - id: gd-soe-gzw
+    name: 广东省国资委·国企招聘公告（企业动态栏）
+    path: 6
+    tier: C
+    region: 广东省
+    entry: http://gzw.gd.gov.cn/                          # 已核实：首页承载【国企招聘】标签公告（省属企业动态）
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: 9, note: "秋招9-11月高峰，常年滚动"}
+    list_selector: null
+    status: surveyed
+    # 2026-08-23 实测：入口可达；首页【国企招聘】锚点命中公告（post_4945034 宏大爆破），
+    # 真实 LLM 抽取已入库 10 岗。省属企业（广晟/越秀/广新/恒健等）招聘经此栏发布。
+    # 注：首页只露最新数条，历史公告需栏目页翻页（待勘察 qydt 栏目分页结构）。
+    notes: 央企总部级（南方电网 job.csg.cn）SSL 拦截暂不可抓，待专项处理；各地市国企另需按市追加源
+
+  - id: gd-soe-szgzw
+    name: 深圳市国资委·国企人才校园招聘专栏
+    path: 6
+    tier: C
+    region: [广东省, 深圳市]
+    entry: https://gzw.sz.gov.cn/gzrc/xyzp/             # 已核实：专栏列表页，公告链接充足
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: 9, note: "春招+秋招两波（菁英聚鹏城等），常年滚动"}
+    list_selector: null
+    status: surveyed
+    # 2026-08-23 实测：专栏可达（8 个招聘公告链接）；2026春招总公告（post_12774264）
+    # 真实 LLM 抽取已入库计划级入口。市属国企（地铁/机场/巴士/能源/特区建发等）分公告逐日跟进。
+    # 注：/xyzp/index.html 为 JS 空壳，须用 /gzrc/xyzp/ 栏目页。
+    notes: 深圳89家市属国企校园招聘集中发布栏
+
+  - id: gd-soe-fsgzw
+    name: 佛山市国资委·国企招聘专题
+    path: 6
+    tier: C
+    region: [广东省, 佛山市]
+    entry: http://fsgzw.foshan.gov.cn/ztzl/gqzp/index.html  # 已核实：专题页可达
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: 9, note: "秋招高峰，常年滚动"}
+    list_selector: null
+    status: surveyed
+    # 2026-08-23 实测：专题页可达；公告多挂微信公众号文章（mp.weixin.qq.com 反爬验证墙，
+    # 抓取侧自动降级跳过），部分为企业官网直链（如 fmetro.net 佛山地铁）可正常抽取。
+    notes: 公众号文章不可抓（微信验证墙）；企业官网直链可抽
+
+  - id: gd-soe-gzgzw
+    name: 广州市国资委·通知公告（国企招聘）
+    path: 6
+    tier: C
+    region: [广东省, 广州市]
+    entry: http://gzw.gz.gov.cn/                          # 已核实：首页含招聘锚点公告
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: 9, note: "秋招高峰，常年滚动"}
+    list_selector: null
+    status: surveyed
+    # 2026-08-23 实测：入口可达；首页招聘锚点命中通知公告 post。广州另有 job168.com/soe
+    # 国企专区（市人社局办）但为 JS 渲染不可抓，待专项处理（API 逆向或无头浏览器）。
+    notes: 广州国企招聘也经市人社局 job168 平台发布（JS 渲染暂不可抓）
+
+  # ── 国聘网（央企官方聚合平台）──
+  - id: cn-soe-iguopin
+    name: 国聘网·央企招聘聚合平台
+    path: 6
+    tier: C
+    region: 全国
+    entry: null                                          # JS 渲染空壳（1025 bytes），静态抓取无内容→暂缓启用
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: 9, note: "国聘行动春秋两季，常年滚动"}
+    list_selector: null
+    status: pending_survey
+    # 2026-08-23 实测：整站 SPA（前端渲染），stdlib 抓取只拿回壳页面。
+    # 接入需 API 逆向（职位列表接口）或无头浏览器，超出当前零依赖抓取器能力。
+    # entry 置 null：调度器静默跳过（is_active_source=False），不浪费每日抓取。
+    # 逆向完成后把 https://www.iguopin.com/ 填回 entry 并改 status: surveyed。
+    notes: 央企岗位聚合大表（国务院国资委背景）；待 API 逆向专项后启用
+
+  - id: gd-soe-dggzw
+    name: 东莞市国资委·国企招聘
+    path: 6
+    tier: C
+    region: [广东省, 东莞市]
+    entry: http://dgzwj.dg.gov.cn/
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: 9, note: "秋招高峰，常年滚动"}
+    list_selector: null
+    status: pending_survey
+    # 2026-08-23 普查：入口 502 Bad Gateway（服务器故障或临时下线）。
+    # 保留登记：best-effort 抓取会在健康记录中如实记 FAIL，恢复后自动开始发现公告。
+    notes: 待恢复后核实招聘栏目路径（当前入口 502）
+
+  # ── 公众号限制说明（不作为源站登记）──
+  # 「广东国资」等公众号汇总省属国企招聘，但 mp.weixin.qq.com 有反爬验证墙
+  # （实测返回"环境异常"59字），无法程序化抓取。替代策略：
+  # 1) 同内容基本同步发布在对应官网栏目（省/市国资委网站已覆盖）；
+  # 2) 搜狗微信搜索 weixin.sogou.com 可作二期发现通道（同样有频控）。
+  # 结论：公众号路线关闭，以官网栏目等价覆盖。
+
+  # ── 人才引进（C类，市级人社局；以下为首批重点市，其余市按需追加）──
+  - id: gd-rcyj-gz
+    name: 广州市人力资源和社会保障局·人才引进/招聘公告
+    path: 5
+    tier: C
+    region: [广东省, 广州市]
+    entry: https://rsj.gz.gov.cn/                    # TODO 普查具体栏目页
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年滚动"}
+    list_selector: null
+    status: pending_survey
+    # 2026-08-23 普查：首页可达但命中均为新闻动态/系统入口，无招聘公告栏链接。
+    # 下一步：定位"事业单位招聘/人事考试"栏目页后替换 entry。
+    notes: ""
+
+  - id: gd-rcyj-sz
+    name: 深圳市人力资源和社会保障局·人才引进/招聘公告
+    path: 5
+    tier: C
+    region: [广东省, 深圳市]
+    entry: http://hrss.sz.gov.cn/                    # TODO 普查具体栏目页
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年滚动"}
+    list_selector: null
+    status: pending_survey
+    # 2026-08-23 普查：首页可达，命中的"人才引进"链接为办理系统（hrsspub）非公告栏。
+    # 下一步：定位深圳人社"通知公告/事业单位招聘"栏目页后替换 entry；评估"深圳市人事考试网"。
+    notes: 深圳另有"深圳市人事考试网"考试类源，普查时一并评估
+
+  # ── 社区工作者 / 区县级（最下沉，二期接入）──
+  - id: gd-shequ
+    name: 广东各区政府社区工作者招聘（占位）
+    path: 10
+    tier: C
+    region: 广东省
+    entry: null                                       # TODO 二期：按订阅城市逐区登记
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年零散"}
+    list_selector: null
+    status: pending_survey
+    notes: 走"区县政府官网+chrm 兜底"双通道；建议 P3 后期再接入
+
+  # 特岗教师：不适用（特岗计划面向中西部实施省，广东非实施省）

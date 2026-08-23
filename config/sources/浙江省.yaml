@@ -1,0 +1,126 @@
+# ============================================================
+# 源站注册表 · 浙江省（用户订阅，勾选后启用）
+# 最后核实: 2026-08（URL 经公开检索确认；selector 待普查）
+# ============================================================
+meta:
+  province: 浙江省
+  adcode: "330000"
+  updated: 2026-08-20
+
+sources:
+  - id: zj-xuandiao
+    name: 浙江省党政机关选调应届优秀大学毕业生公告
+    path: 1
+    tier: C
+    region: 浙江省
+    entry: https://rlsbt.zj.gov.cn/                   # 省人社厅·人事信息栏目（TODO 普查确认原发栏目）
+    fallback_entries:                                 # 已核实的可靠转载源（公告由省委组织部发布，原发渠道待普查）
+      - https://career.zjnu.edu.cn/                   # 浙师大就业网（高校聚合，滚动快）
+      - https://career.cic.tsinghua.edu.cn/           # 清华就业网（2026公告核实可见）
+    extractor: excel_or_llm
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 9, note: "浙江选调较早，近年9-10月发布公告"}
+    list_selector: null
+    status: pending_survey
+    notes: >-
+      原发渠道尚未核实到稳定官网栏目（疑在省委组织部内部系统/定向高校渠道发布）。
+      v1 先以高校就业网转载源+chrm 兜底跑通，同时普查补原发源；
+      去重规则：多源同公告按 标题+日期 模糊合并，保留可公开访问链接。
+
+  - id: zj-shengkao
+    name: 浙江省各级机关单位考试录用公务员
+    path: 3
+    tier: A
+    region: 浙江省
+    entry: http://gwy.zjks.gov.cn/zjgwy/website/      # 已核实：浙江省公务员考试录用网·招考公告栏目
+    extractor: excel
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 11, note: "近年约11月公告、12月-1月笔试"}
+    list_selector: null
+    status: pending_survey
+    notes: 职位表为 Excel 附件；本省考系统域名独立于人社厅，普查时确认反爬策略
+
+  - id: zj-sydw
+    name: 浙江省省属事业单位集中公开招聘
+    path: 4
+    tier: C
+    region: 浙江省
+    entry: https://rlsbt.zj.gov.cn/                   # 省人社厅（原发）
+    mirror_entry: https://www.zjks.com/               # 浙江人事考试网（TODO 核实域名与栏目）
+    fallback_entries:
+      - https://career.zjnu.edu.cn/                   # 高校就业网转载（已核实承载省属事业单位公告）
+    extractor: excel_or_llm
+    schedule: {daily: 2}
+    season: {peak_month: 12, note: "集中招聘分上/下半年两批，近年下半年批8月公告"}
+    list_selector: null
+    status: pending_survey
+    notes: 带岗位表；11市零散招聘后续按市追加
+
+  - id: zj-szyf
+    name: 浙江省高校毕业生三支一扶计划
+    path: 8
+    tier: C
+    region: 浙江省
+    entry: https://rlsbt.zj.gov.cn/                   # 已核实承载三支一扶招募公告
+    extractor: llm
+    schedule: {daily: 1, peak: daily3}
+    season: {peak_month: 4, note: "一年一次"}
+    list_selector: null
+    status: pending_survey
+    notes: ""
+
+  - id: zj-hr-platform
+    name: 浙江省公共就业服务平台（人才引进/国企岗聚合）
+    path: 5
+    tier: B
+    region: 浙江省
+    entry: https://www.zjhr.com/                      # 已核实可访问；招聘栏目结构待普查
+    extractor: structured
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年滚动"}
+    list_selector: null
+    status: pending_survey
+    notes: 省级官方就业平台，兼有人才引进与国企岗位，一个源覆盖多个路径
+
+  # ── 人才引进（C类，市级）──
+  - id: zj-rcyj-hz
+    name: 杭州市人力资源和社会保障局·人才引进/招聘公告
+    path: 5
+    tier: C
+    region: [浙江省, 杭州市]
+    entry: http://hrss.hangzhou.gov.cn/               # TODO 普查具体栏目页
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年滚动"}
+    list_selector: null
+    status: pending_survey
+    notes: ""
+
+  - id: zj-rcyj-nb
+    name: 宁波市人力资源和社会保障局·人才引进/招聘公告
+    path: 5
+    tier: C
+    region: [浙江省, 宁波市]
+    entry: http://rsj.ningbo.gov.cn/                  # TODO 普查具体栏目页
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年滚动"}
+    list_selector: null
+    status: pending_survey
+    notes: ""
+
+  # ── 社区工作者 / 区县级（二期）──
+  - id: zj-shequ
+    name: 浙江各区政府社区工作者招聘（占位）
+    path: 10
+    tier: C
+    region: 浙江省
+    entry: null                                       # TODO 二期：按订阅城市逐区登记
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年零散"}
+    list_selector: null
+    status: pending_survey
+    notes: 走"区县政府官网+chrm 兜底"双通道
+
+  # 特岗教师：不适用（浙江非特岗计划实施省）

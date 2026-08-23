@@ -1,0 +1,9 @@
+# P0 匹配引擎（零网络、零数据库，纯内存对象）
+# 运行测试：python -m unittest discover -s tests -v
+pydantic>=2.0
+
+# P1 起追加：
+# httpx, playwright, pandas, openpyxl      # 抓取与 Excel 解析
+# fastapi, uvicorn                          # API
+# psycopg[binary]                           # PostgreSQL
+# PyYAML                                    # 源站注册表(本项目 config/sources/*.yaml)

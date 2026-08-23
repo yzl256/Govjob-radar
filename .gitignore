@@ -1,0 +1,32 @@
+# ── 敏感：绝不入库 ─────────────────────────────
+# SQLite 含 LLM API Key（H5「LLM 设置」保存处）
+data/govjob.db
+data/govjob.db-wal
+data/govjob.db-shm
+# 个人真实档案（出生日期等）；demo_user.json 保留作样例
+config/profiles/user.json
+config/profiles/web_test_profile.json
+
+# ── 运行时数据区（抓取产物/职位表缓存，按需本地生成）──
+data/
+backend/data/
+
+# ── 开发草稿 / 联调样本（不入库）────────────────
+backend/*.xlsx
+backend/*.zip
+backend/*.pdf
+wx_article.txt
+
+# ── Python ─────────────────────────────────────
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# ── 系统 / 临时 ────────────────────────────────
+.tmp/
+Thumbs.db
+.DS_Store
+*.log

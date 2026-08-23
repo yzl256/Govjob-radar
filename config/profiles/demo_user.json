@@ -1,0 +1,27 @@
+{
+  "name": "demo-user",
+  "birth_date": "1998-07-15",
+  "gender": "女",
+  "political_status": "党员",
+  "fresh_status": "应届毕业生",
+  "is_student_cadre": true,
+  "has_school_award": true,
+  "household_province": "广东省",
+  "origin_province": "广东省",
+  "education": [
+    {
+      "level": "本科",
+      "major_name": "计算机科学与技术",
+      "major_code": "080901",
+      "school": "某双一流大学",
+      "is_double_first_class": true
+    },
+    {
+      "level": "硕士",
+      "major_name": "计算机科学与技术",
+      "major_code": "0812",
+      "school": "某双一流大学",
+      "is_double_first_class": true
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+# ============================================================
+# 源站注册表 · 山东省（用户订阅，勾选后启用）
+# 最后核实: 2026-08（URL 经公开检索确认；selector 待普查）
+# ============================================================
+meta:
+  province: 山东省
+  adcode: "370000"
+  updated: 2026-08-20
+
+sources:
+  - id: sd-xuandiao
+    name: 山东选调生公告（灯塔-党建在线·通知公告）
+    path: 1
+    tier: C
+    region: 山东省
+    entry: https://www.dtdjzx.gov.cn/                 # 灯塔-党建在线（省委组织部官网）
+    list_entry: https://cms.dtdjzx.gov.cn/staticPage/dtsc/dtrdtzgg/  # 已核实通知公告栏目
+    extractor: excel_or_llm
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 10, note: "分批发布（专额/常规选调），公告集中在10-12月"}
+    list_selector: null
+    status: pending_survey
+    notes: 山东选调窗口短批次多，公告季需盯紧
+
+  - id: sd-shengkao
+    name: 山东省考试录用公务员
+    path: 3
+    tier: A
+    region: 山东省
+    entry: https://www.dtdjzx.gov.cn/                 # 公告同步发布于灯塔与省人社厅
+    apply_entry: null                                 # TODO: 普查当年报名平台入口
+    extractor: excel
+    schedule: {daily: 2, peak: hourly}
+    season: {peak_month: 11, note: "近年明显提前：约11月公告、12月笔试"}
+    list_selector: null
+    status: pending_survey
+    notes: 职位表为 Excel 附件；山东节奏早于多数省份，注意与其他省联考错峰
+
+  - id: sd-sydw
+    name: 山东省属事业单位公开招聘（省人社厅）
+    path: 4
+    tier: C
+    region: 山东省
+    entry: http://hrss.shandong.gov.cn/               # 省人社厅事业单位招聘专栏
+    list_entry: http://hrss.shandong.gov.cn/rsks/     # 已核实：山东人事考试信息网（考试类公告）
+    extractor: excel_or_llm
+    schedule: {daily: 2}
+    season: {peak_month: 1, note: "初级综合类岗位统考公告近年1月发布"}
+    list_selector: null
+    status: pending_survey
+    notes: 统考带岗位表；16市零散招聘后续按市追加
+
+  - id: sd-szyf
+    name: 山东省高校毕业生三支一扶计划
+    path: 8
+    tier: C
+    region: 山东省
+    entry: http://hrss.shandong.gov.cn/
+    mirror_entry: https://www.sdgxbys.cn/             # 已核实：山东高校毕业生就业信息网（szyftzgg 三支一扶通知公告栏）
+    extractor: llm
+    schedule: {daily: 1, peak: daily3}
+    season: {peak_month: 4, note: "一年一次"}
+    list_selector: null
+    status: pending_survey
+    notes: 双源互备：人社厅原发 + 毕业生就业信息网聚合
+
+  # ── 人才引进（C类，市级）──
+  - id: sd-rcyj-jn
+    name: 济南市人力资源和社会保障局·人才引进/招聘公告
+    path: 5
+    tier: C
+    region: [山东省, 济南市]
+    entry: http://hrss.jinan.gov.cn/                  # TODO 普查具体栏目页
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年滚动"}
+    list_selector: null
+    status: pending_survey
+    notes: ""
+
+  - id: sd-rcyj-qd
+    name: 青岛市人力资源和社会保障局·人才引进/招聘公告
+    path: 5
+    tier: C
+    region: [山东省, 青岛市]
+    entry: http://hrss.qingdao.gov.cn/                # TODO 普查具体栏目页
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年滚动"}
+    list_selector: null
+    status: pending_survey
+    notes: 青岛"青雁归巢"等专项引才活动在该局公告栏发布
+
+  # ── 社区工作者 / 区县级（二期）──
+  - id: sd-shequ
+    name: 山东各区政府社区工作者招聘（占位）
+    path: 10
+    tier: C
+    region: 山东省
+    entry: null                                       # TODO 二期：按订阅城市逐区登记
+    extractor: llm
+    schedule: {daily: 1}
+    season: {peak_month: null, note: "常年零散"}
+    list_selector: null
+    status: pending_survey
+    notes: 走"区县政府官网+chrm 兜底"双通道
+
+  # 特岗教师：不适用（山东非特岗计划实施省）
