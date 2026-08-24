@@ -18,6 +18,7 @@ from typing import Optional
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS llm_config (
     id         INTEGER PRIMARY KEY CHECK (id = 1),
+    provider   TEXT NOT NULL DEFAULT '',
     api_key    TEXT NOT NULL DEFAULT '',
     base_url   TEXT NOT NULL DEFAULT '',
     model      TEXT NOT NULL DEFAULT '',
@@ -29,6 +30,15 @@ CREATE TABLE IF NOT EXISTS user_profile (
     updated_at TEXT NOT NULL
 );
 """
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """旧库补 provider 列（幂等）；已有 key 的行回填 deepseek（此前唯一默认供应商）。"""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(llm_config)")}
+    if "provider" not in cols:
+        conn.execute("ALTER TABLE llm_config ADD COLUMN provider TEXT NOT NULL DEFAULT ''")
+    conn.execute("UPDATE llm_config SET provider='deepseek' WHERE provider='' AND api_key!=''")
+    conn.commit()
 
 
 def db_file(root: Path, path: Optional[Path] = None) -> Path:
@@ -44,6 +54,7 @@ def connect(db: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=3000")
     conn.executescript(_SCHEMA)
+    _migrate(conn)
     return conn
 
 
@@ -53,7 +64,7 @@ def _now() -> str:
 
 # ── LLM 配置 ─────────────────────────────────────────────
 def get_llm_config(db: Path) -> Optional[dict]:
-    """无记录返回 None；有记录返回 {api_key, base_url, model, updated_at}。"""
+    """无记录返回 None；有记录返回 {provider, api_key, base_url, model, updated_at}。"""
     with closing(connect(db)) as conn:
         row = conn.execute("SELECT * FROM llm_config WHERE id=1").fetchone()
     if row is None:
@@ -66,14 +77,17 @@ def save_llm_config(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     model: Optional[str] = None,
+    provider: Optional[str] = None,
 ) -> dict:
     """部分更新 upsert：None/未传字段保留原值（前端"留空不改"语义）。
     返回更新后的完整配置。"""
     with closing(connect(db)) as conn:
         row = conn.execute("SELECT * FROM llm_config WHERE id=1").fetchone()
-        cur = {"api_key": "", "base_url": "", "model": ""}
+        cur = {"provider": "", "api_key": "", "base_url": "", "model": ""}
         if row is not None:
             cur = {k: row[k] for k in cur}
+        if provider is not None:
+            cur["provider"] = provider.strip()
         if api_key is not None:
             cur["api_key"] = api_key.strip()
         if base_url is not None:
@@ -81,12 +95,12 @@ def save_llm_config(
         if model is not None:
             cur["model"] = model.strip()
         conn.execute(
-            "INSERT INTO llm_config (id, api_key, base_url, model, updated_at)"
-            " VALUES (1, ?, ?, ?, ?)"
-            " ON CONFLICT(id) DO UPDATE SET api_key=excluded.api_key,"
-            " base_url=excluded.base_url, model=excluded.model,"
-            " updated_at=excluded.updated_at",
-            (cur["api_key"], cur["base_url"], cur["model"], _now()),
+            "INSERT INTO llm_config (id, provider, api_key, base_url, model, updated_at)"
+            " VALUES (1, ?, ?, ?, ?, ?)"
+            " ON CONFLICT(id) DO UPDATE SET provider=excluded.provider,"
+            " api_key=excluded.api_key, base_url=excluded.base_url,"
+            " model=excluded.model, updated_at=excluded.updated_at",
+            (cur["provider"], cur["api_key"], cur["base_url"], cur["model"], _now()),
         )
         conn.commit()
     return cur

@@ -44,7 +44,7 @@ pip install -r requirements.txt && python -m app.cli serve
 
 打开页面（http://127.0.0.1:8420，自动打开）后三步完成配置——全部页面操作，无需改任何代码：
 
-1. **LLM 设置**卡 → 填 DeepSeek API Key → 保存 → 测试连接（存本机 SQLite，只回脱敏形式）
+1. 右上角**齿轮 ⚙** → 选模型供应商（DeepSeek/Kimi/智谱/通义/OpenAI）→ 贴 API Key → 验证 → 选模型 → 保存（接口地址由后端封装，前端不展示；Key 存本机 SQLite，只回脱敏形式）
 2. **我的档案**卡 → 学历/专业代码/出生日期 → 保存（首访自动建 SQLite/目录，无需预置文件）
 3. 点「立即匹配」——样例职位表 5 岗即刻可见；正式职位表（国考/省考 xlsx）放进 `data/inbox/` 即自动参与匹配
 

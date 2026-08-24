@@ -16,7 +16,7 @@ python -m app.cli serve [--port=8420] [--no-open]
                                            # H5 界面（档案表单+LLM设置+订阅省份+双页签结果）
                                            # 全新环境首次启动自动播种样例职位表并开浏览器
 python -m app.cli extract <url|文件.html> [--source=gd-rcyj] [--path=5]
-                                          # C 类公告 LLM 抽取联调（需 LLM Key：H5「LLM 设置」保存到 SQLite，
+                                          # C 类公告 LLM 抽取联调（需 LLM Key：H5 右上角齿轮→弹窗保存到 SQLite，
                                           # 或环境变量 DEEPSEEK_API_KEY/LLM_API_KEY；离线回放：
                                           # $env:LLM_FAKE_RESPONSE='..\data\fake_response.json'）
 python -m app.cli test-notify             # Server酱联调（需 SERVERCHAN_SENDKEY）
@@ -44,7 +44,7 @@ python -m app.cli match ..\data\inbox\sample_guokao_2027.xlsx ..\config\profiles
 | `app/llm/client.py` | LLM 客户端：OpenAI 兼容（默认 DeepSeek，urllib 零依赖）+ FakeLLM 测试替身 |
 | `app/llm/extract.py` | C 类公告抽取：prompt + JSON 容错解析 + 归一化 Job（专业原文交本地知识层，LLM 不猜代码） |
 | `app/store/jobs.py` | 岗位库 data/jobs.jsonl：追加去重 + 加载（部署机换 PostgreSQL 接口不变） |
-| `app/store/db.py` | SQLite 持久层 data/govjob.db：`llm_config`（H5「LLM 设置」保存的 Key/地址/模型）+ `user_profile`（个人档案，JSON 文档列；WAL + 短连接） |
+| `app/store/db.py` | SQLite 持久层 data/govjob.db：`llm_config`（齿轮弹窗保存的供应商/Key/模型，base_url 由后端注册表解析）+ `user_profile`（个人档案，JSON 文档列；WAL + 短连接；旧库自动迁移） |
 | `app/pipeline/c_extract.py` | C 源编排：入口页→公告链接发现→抽取→入库 |
 | `app/scheduler/sources.py` | 源站注册表加载（全国恒启 + 按订阅省份启用）+ 健康记录 |
 | `app/pipeline/daily.py` | 日报管道：匹配 → 三态分组 → 可渲染报告 |
@@ -53,7 +53,7 @@ python -m app.cli match ..\data\inbox\sample_guokao_2027.xlsx ..\config\profiles
 | `app/web/server.py` | 零依赖 Web 服务（stdlib http + pydantic 校验，API 薄可平移 FastAPI） |
 | `app/cli.py` | `demo` / `daily` / `serve` / `test-notify` / `match` 命令 |
 
-`web/index.html`（仓库根 `web/`）为 H5 单文件页：LLM 设置、档案表单、多段学历编辑、订阅省份勾选、双页签结果（✅ 可报名投递 / 📚 备考看板——10 条赛道周期与行动建议）。
+`web/index.html`（仓库根 `web/`）为 H5 单文件页：顶栏齿轮弹窗配置大模型（供应商→Key→验证→选型，base_url 后端封装）、档案表单、多段学历编辑、订阅省份勾选、双页签结果（✅ 可报名投递 / 📚 备考看板——10 条赛道周期与行动建议）。
 
 国企央企岗位来源（path=6，均已实测勘察 2026-08-23）：
 - `gd-soe-gzw` 省国资委企业动态栏（LLM 入库 10 岗·宏大爆破）
@@ -87,4 +87,4 @@ python -m app.cli match ..\data\inbox\sample_guokao_2027.xlsx ..\config\profiles
 - ~~外网 TLS 整体不可用~~ **已解决**：沙箱拦截 TLS，升级 `danger-full-access` 后正常。2026-08-23 真实源+真实 LLM 联调完成（DeepSeek API + 广东 3 条 2026 公告入库，见 `config/sources/广东省.yaml` 普查注记）；
 - 抓取失败不阻塞流水线：健康记录落盘 `data/source_health.json`（OK/FAIL + 原因）；
 - `zj-shengkao` 入口 404 待勘察修正（源站注册表 status 仍为 pending_survey）；
-- LLM Key 两种配置方式：**H5「LLM 设置」页保存 → SQLite `data/govjob.db`（推荐，优先级高）**；环境变量 `DEEPSEEK_API_KEY` / `LLM_API_KEY` 兜底（不落仓库文件）。Key 明文存本机私有库文件，对外接口只出脱敏形式（`sk-a****f456`）；「测试连接」走 `/models` 端点不耗 token。个人档案同样以 SQLite 为权威源，保存时镜像写回 `config/profiles/user.json` 保持 CLI/日报兼容（首访自动迁移既有 JSON）。
+- LLM Key 两种配置方式：**H5 齿轮弹窗保存 → SQLite `data/govjob.db`（推荐，优先级高）**；环境变量 `DEEPSEEK_API_KEY` / `LLM_API_KEY` 兜底（不落仓库文件）。供应商注册表 `app/llm/providers.py` 封装各家的 base_url 与可选模型（DeepSeek/Kimi/智谱/通义/OpenAI），前端永不接触接口地址；Key 明文存本机私有库文件，对外接口只出脱敏形式（`sk-a****f456`）；「验证 Key」走 `/models` 端点不耗 token（供应商无此端点时降级 1-token 对话探测）。个人档案同样以 SQLite 为权威源，保存时镜像写回 `config/profiles/user.json` 保持 CLI/日报兼容（首访自动迁移既有 JSON）。

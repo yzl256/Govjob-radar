@@ -90,13 +90,17 @@ def _serialize_result(jr) -> dict:
 
 
 def _llm_view(cfg: dict, masked: bool = True) -> dict:
-    """对外安全视图：api_key 只出脱敏形式，绝不回传明文。"""
+    """对外安全视图：api_key 只出脱敏形式；base_url 不出（后端按供应商封装）。"""
+    from app.llm.providers import PROVIDERS
     from app.store.db import mask_key
 
+    pid = cfg.get("provider") or "deepseek"
+    p = PROVIDERS.get(pid) or {}
     return {
         "configured": bool((cfg.get("api_key") or "").strip()),
+        "provider": pid,
+        "provider_name": p.get("name", pid),
         "api_key_masked": mask_key(cfg.get("api_key") or ""),
-        "base_url": cfg.get("base_url") or "",
         "model": cfg.get("model") or "",
     }
 
@@ -154,18 +158,31 @@ class Handler(BaseHTTPRequestHandler):
             if not view["configured"]:
                 # 库里没有 → 看环境变量是否兜底（供前端提示"env 已配置"）
                 from app.llm.client import llm_config
+                from app.store.db import mask_key
 
                 env = llm_config()  # 不传 root：纯环境变量
                 if env["api_key"]:
-                    from app.store.db import mask_key
-
                     view = {
                         "configured": True,
+                        "provider": "deepseek",
+                        "provider_name": "DeepSeek 深度求索",
                         "api_key_masked": mask_key(env["api_key"]) + "（环境变量）",
-                        "base_url": env["base_url"],
                         "model": env["model"],
                     }
             self._send(200, view)
+            return
+        if route == "/api/llm/providers":
+            from app.llm.providers import PROVIDERS
+
+            self._send(
+                200,
+                {
+                    "providers": [
+                        {"id": pid, "name": p["name"], "models": p["models"], "key_url": p["key_url"]}
+                        for pid, p in PROVIDERS.items()
+                    ]
+                },
+            )
             return
         if route == "/api/dfc":
             from urllib.parse import parse_qs, urlparse
@@ -215,23 +232,49 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"ok": True})
             return
         if self.path == "/api/llm":
-            from app.store.db import get_llm_config, save_llm_config
+            from app.llm.providers import PROVIDERS
+            from app.store.db import save_llm_config
 
             body = self._body()
+            pid = (body.get("provider") or "").strip()
+            if pid not in PROVIDERS:
+                self._send(400, {"error": f"未知供应商: {pid or '(空)'}"})
+                return
             try:
+                # base_url 永远由后端按供应商解析，前端不传不显示
                 saved = save_llm_config(
                     st.db,
-                    api_key=body.get("api_key") or None,  # 空=保留原值（只改 base_url/model）
-                    base_url=body.get("base_url") or None,
-                    model=body.get("model") or None,
+                    provider=pid,
+                    api_key=(body.get("api_key") or "").strip() or None,  # 空=保留原 key（仅换模型）
+                    base_url=PROVIDERS[pid]["base_url"],
+                    model=(body.get("model") or "").strip() or None,
                 )
             except Exception as e:
                 self._send(500, {"error": f"配置写入数据库失败: {e}"})
                 return
-            self._send(200, {"ok": True, "saved": _llm_view(saved, masked=True)})
+            self._send(200, {"ok": True, "saved": _llm_view(saved)})
+            return
+        if self.path == "/api/llm/verify":
+            from app.llm.client import test_llm_connection
+            from app.llm.providers import PROVIDERS
+
+            body = self._body()
+            pid = (body.get("provider") or "").strip()
+            key = (body.get("api_key") or "").strip()
+            if pid not in PROVIDERS:
+                self._send(400, {"error": f"未知供应商: {pid or '(空)'}"})
+                return
+            if not key:
+                self._send(400, {"error": "请先填入 API Key"})
+                return
+            model = (body.get("model") or "").strip() or PROVIDERS[pid]["models"][0]
+            result = test_llm_connection(key, PROVIDERS[pid]["base_url"], model=model)
+            result["provider_name"] = PROVIDERS[pid]["name"]
+            self._send(200, result)  # 验证失败是业务结果而非协议错误，前端按 ok 分支
             return
         if self.path == "/api/llm/test":
             from app.llm.client import test_llm_connection
+            from app.llm.providers import PROVIDERS
             from app.store.db import get_llm_config
 
             cfg = get_llm_config(st.db) or {}
@@ -239,8 +282,10 @@ class Handler(BaseHTTPRequestHandler):
             if not key:
                 self._send(400, {"error": "尚未保存 API Key，请先保存再测试"})
                 return
-            result = test_llm_connection(key, cfg.get("base_url") or "https://api.deepseek.com")
-            self._send(200, result)  # 连通失败是业务结果而非协议错误，前端按 ok 字段分支
+            pid = cfg.get("provider") or "deepseek"
+            base = cfg.get("base_url") or (PROVIDERS.get(pid) or {}).get("base_url") or "https://api.deepseek.com"
+            result = test_llm_connection(key, base, model=cfg.get("model") or "")
+            self._send(200, result)
             return
         if self.path == "/api/match":
             profile = _load_profile(st)

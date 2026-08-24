@@ -6,188 +6,312 @@
 <title>岗位雷达 · 体制内每日匹配</title>
 <style>
   :root{
-    --paper:#f7f5f0; --card:#fffdf9; --ink:#26221c; --ink-2:#6b645a;
-    --line:#e5dfd3; --red:#c2410c; --green:#1a7f37; --amber:#b45309;
-    --serif:"Noto Serif SC","Source Han Serif SC","SimSun",serif;
-    --sans:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
-    --mono:ui-monospace,Consolas,monospace;
+    --bg:#f4f5f7; --card:#fff; --ink:#1f2329; --ink-2:#646a73; --ink-3:#8f959e;
+    --line:#e5e7eb; --line-2:#d3d7de;
+    --acc:#3056d3; --acc-deep:#2744ad; --acc-weak:#eef2fe;
+    --green:#178b52; --green-weak:#e9f6ef;
+    --amber:#b25e09; --amber-weak:#fdf3e3;
+    --red:#d13438; --red-weak:#fdeced;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,Consolas,"Cascadia Mono",monospace;
+    --radius:12px; --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 6px rgba(16,24,40,.04);
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.65 var(--sans)}
-  main{max-width:780px;margin:0 auto;padding:28px 18px 80px}
-  header{border-bottom:3px double var(--line);padding-bottom:14px;margin-bottom:26px}
-  h1{font:700 26px/1.3 var(--serif);margin:0;letter-spacing:2px}
-  h1 .seal{color:var(--red)}
-  header p{margin:6px 0 0;color:var(--ink-2);font-size:13px}
-  h2{font:700 18px/1.4 var(--serif);margin:34px 0 12px;letter-spacing:1px}
-  h2::before{content:"「";color:var(--red)} h2::after{content:"」"}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px 16px}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 var(--sans);
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--acc);text-decoration:none}
+  a:hover{text-decoration:underline}
+  button{cursor:pointer;font:14px var(--sans);border-radius:8px}
+  input,select{width:100%;padding:8px 11px;border:1px solid var(--line-2);border-radius:8px;
+    background:#fff;font:14px var(--sans);color:var(--ink);transition:border .15s,box-shadow .15s}
+  input:focus,select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-weak)}
+  :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+  /* ── 顶栏 ─────────────────────────────── */
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .topbar-in{max-width:880px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:9px;min-width:0}
+  .brand svg{flex:none}
+  .brand b{font-size:17px;font-weight:700;letter-spacing:.5px}
+  .brand small{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.2;margin-top:1px}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
+    color:var(--ink-2);font-size:12.5px;border-radius:999px;padding:5px 12px;max-width:240px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip:hover{border-color:var(--line-2);background:var(--bg)}
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex:none}
+  .chip.on .dot{background:var(--green)}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+    border:1px solid var(--line);background:#fff;border-radius:9px;color:var(--ink-2)}
+  .icon-btn:hover{background:var(--bg);color:var(--ink);border-color:var(--line-2)}
+
+  main{max-width:880px;margin:0 auto;padding:22px 18px 70px}
+
+  /* ── 统计 ─────────────────────────────── */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;box-shadow:var(--shadow)}
+  .stat b{display:block;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25}
+  .stat span{font-size:12px;color:var(--ink-2)}
+  .stat.ok b{color:var(--green)} .stat.warn b{color:var(--amber)}
+  .stat.bad b{color:var(--ink-2)} .stat.arch b{color:var(--ink-3)}
+
+  .section-h{display:flex;align-items:baseline;gap:10px;margin:26px 0 12px}
+  .section-h h2{margin:0;font-size:16px;font-weight:700}
+  .section-h span{font-size:12.5px;color:var(--ink-3)}
+
+  /* ── 卡片与表单 ───────────────────────── */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;box-shadow:var(--shadow)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px 14px}
   .field label{display:block;font-size:12px;color:var(--ink-2);margin-bottom:4px}
-  input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;
-    background:#fff;font:14px var(--sans);color:var(--ink)}
-  input:focus,select:focus{outline:2px solid var(--red);outline-offset:1px;border-color:var(--red)}
-  fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 12px;padding:12px 14px;background:#fff}
+  fieldset{border:1px solid var(--line);border-radius:10px;margin:14px 0 0;padding:12px 14px;background:#fff}
   legend{font-size:12px;color:var(--ink-2);padding:0 6px}
   .edu-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-  .edu-head b{font:600 14px var(--serif)}
-  button{cursor:pointer;border-radius:6px;font:14px var(--sans)}
-  .btn{padding:9px 22px;border:1px solid var(--ink);background:var(--ink);color:#fff}
-  .btn.ghost{background:transparent;color:var(--ink)}
-  .btn:disabled{opacity:.5;cursor:wait}
-  .linkish{border:none;background:none;color:var(--red);font-size:13px;padding:4px}
+  .edu-head b{font-size:13.5px;font-weight:600}
+  .linkish{border:none;background:none;color:var(--acc);font-size:13px;padding:4px 6px}
+  .linkish:hover{text-decoration:underline}
   .provinces{display:flex;flex-wrap:wrap;gap:8px}
   .provinces label{display:flex;align-items:center;gap:5px;border:1px solid var(--line);
-    border-radius:999px;padding:5px 13px;background:#fff;font-size:13px;cursor:pointer}
-  .provinces input{width:auto;accent-color:var(--red)}
-  .provinces input:checked+span{color:var(--red);font-weight:600}
-  .dfc-badge{font:12px var(--sans);margin-left:4px}
-  .dfc-badge.hit{color:var(--green)} .dfc-badge.miss{color:var(--ink-2)}
-  .actions{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
-  .counts{display:flex;gap:10px;margin:14px 0 18px;flex-wrap:wrap}
-  .count{flex:1;min-width:120px;border-radius:8px;padding:10px 14px;border:1px solid var(--line);background:var(--card)}
-  .count b{font:700 22px var(--serif);display:block}
-  .count span{font-size:12px;color:var(--ink-2)}
-  .count.ok b{color:var(--green)} .count.warn b{color:var(--amber)} .count.bad b{color:var(--red)}
-  .job{border:1px solid var(--line);border-left:4px solid var(--green);border-radius:6px;
-    background:var(--card);padding:12px 14px;margin-bottom:10px}
-  .job.warn{border-left-color:var(--amber)}
-  .job h3{margin:0;font:600 15px var(--serif);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-  .tag{font:12px var(--sans);padding:1px 8px;border-radius:4px;color:#fff}
-  .tag.ok{background:var(--green)} .tag.warn{background:var(--amber)}
-  .meta{color:var(--ink-2);font-size:13px;margin-top:4px}
-  .meta .dl{color:var(--red);font-weight:600}
-  details{margin-top:8px}
-  summary{font-size:13px;color:var(--ink-2);cursor:pointer}
-  .reasons{margin:6px 0 0;padding:0;list-style:none;font-size:13px}
-  .reasons li{padding:2px 0;border-bottom:1px dashed var(--line)}
-  .reasons li:last-child{border:none}
-  .r-pass{color:var(--green)} .r-fail{color:var(--red)} .r-unknown{color:var(--amber)}
-  .attention{font-size:13px;color:var(--amber);margin-top:6px}
-  .empty{padding:40px 20px;text-align:center;color:var(--ink-2);border:1px dashed var(--line);border-radius:8px}
-  .filters{padding:12px 14px;margin-bottom:14px}
+    border-radius:999px;padding:4px 12px;background:#fff;font-size:13px;cursor:pointer;color:var(--ink-2)}
+  .provinces input{width:auto;accent-color:var(--acc)}
+  .provinces input:checked+span{color:var(--acc);font-weight:600}
+  .dfc-badge{font-size:12px;margin-left:2px}
+  .dfc-badge.hit{color:var(--green)} .dfc-badge.miss{color:var(--ink-3)}
+  .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center}
+  .btn{padding:8px 20px;border:1px solid transparent;background:#fff;color:var(--ink)}
+  .btn.primary{background:var(--acc);color:#fff}
+  .btn.primary:hover:not(:disabled){background:var(--acc-deep)}
+  .btn.ghost{border-color:var(--line-2);color:var(--ink)}
+  .btn.ghost:hover:not(:disabled){background:var(--bg)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  /* 档案折叠 */
+  details.pcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-bottom:0}
+  details.pcard>summary{list-style:none;cursor:pointer;padding:14px 18px;display:flex;
+    align-items:center;gap:10px;user-select:none}
+  details.pcard>summary::-webkit-details-marker{display:none}
+  details.pcard>summary .caret{color:var(--ink-3);transition:transform .15s;font-size:12px}
+  details.pcard[open]>summary .caret{transform:rotate(90deg)}
+  .psum{font-size:13px;color:var(--ink-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .psum .tag-mini{border:1px solid var(--line);border-radius:6px;padding:0 8px;font-size:12px;
+    color:var(--ink-2);background:var(--bg)}
+  .psum .empty-hint{color:var(--red);font-size:12.5px}
+  .pbody{padding:4px 18px 18px}
+
+  /* ── 页签 ─────────────────────────────── */
+  .tabs{display:inline-flex;background:#e9ebef;border-radius:10px;padding:3px;margin-bottom:14px}
+  .tab{border:none;background:transparent;color:var(--ink-2);font-weight:600;font-size:13.5px;
+    padding:7px 18px;border-radius:8px}
+  .tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.1)}
+  .tab .num{font:700 11.5px var(--mono);margin-left:4px;color:var(--acc);
+    background:var(--acc-weak);border-radius:99px;padding:1px 7px;vertical-align:1px}
+  .tab.active .num{color:var(--acc)}
+
+  /* ── 筛选 ─────────────────────────────── */
+  .filters{padding:12px 14px;margin-bottom:12px}
   .frow{display:flex;gap:10px;flex-wrap:wrap}
   .frow input[type=search]{flex:1;min-width:200px}
   .frow select{width:auto}
   .fpaths{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .fpaths label{display:flex;align-items:center;gap:4px;border:1px solid var(--line);
     border-radius:999px;padding:3px 11px;background:#fff;font-size:12px;cursor:pointer;color:var(--ink-2)}
-  .fpaths input{width:auto;accent-color:var(--red);margin:0}
-  .fpaths input:checked+span{color:var(--red);font-weight:600}
+  .fpaths input{width:auto;accent-color:var(--acc);margin:0}
+  .fpaths input:checked+span{color:var(--acc);font-weight:600}
   .fmeta{font-size:12px;color:var(--ink-2);margin-top:10px}
-  .fmeta button{border:none;background:none;color:var(--red);font-size:12px;padding:0 4px}
-  .updated{font-size:12px;color:var(--ink-2);margin-left:auto;align-self:center}
-  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--ink);color:#fff;
-    padding:10px 22px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none}
-  .toast.show{opacity:.95}
-  .toast.err{background:var(--red)}
-  .failsum{font-size:13px;color:var(--ink-2);margin-top:4px}
-  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-  .tab{padding:8px 18px;border:1px solid var(--line);background:var(--card);color:var(--ink-2);
-    font:600 14px var(--sans);border-radius:999px}
-  .tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .tab .num{font:700 12px var(--mono);margin-left:4px;opacity:.85}
-  .tboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin-bottom:18px}
-  .tcard{border:1px solid var(--line);border-radius:8px;padding:13px 15px;background:var(--card)}
-  .tcard.open{border-left:4px solid var(--green)}
-  .tcard.prep{border-left:4px solid var(--amber)}
+  .fmeta button{border:none;background:none;color:var(--acc);font-size:12px;padding:0 4px}
+  .updated{font-size:12px;color:var(--ink-3);margin-left:auto;align-self:center}
+
+  /* ── 岗位卡 ───────────────────────────── */
+  .job{border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;
+    background:var(--card);padding:13px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+  .job.warn{border-left-color:var(--amber)}
+  .job h3{margin:0;font-size:15px;font-weight:600;line-height:1.5;display:flex;gap:8px;
+    align-items:baseline;flex-wrap:wrap}
+  .pill{font-size:12px;font-weight:600;padding:1px 9px;border-radius:99px;white-space:nowrap;flex:none}
+  .pill.ok{background:var(--green-weak);color:var(--green)}
+  .pill.warn{background:var(--amber-weak);color:var(--amber)}
+  .meta{color:var(--ink-2);font-size:13px;margin-top:4px}
+  .meta .dl{color:var(--red);font-weight:600}
+  details.jwhy{margin-top:8px}
+  details.jwhy summary{font-size:12.5px;color:var(--ink-2);cursor:pointer;list-style:none}
+  details.jwhy summary::-webkit-details-marker{display:none}
+  details.jwhy summary::before{content:"▸ ";color:var(--ink-3)}
+  details.jwhy[open] summary::before{content:"▾ "}
+  .reasons{margin:6px 0 0;padding:0;list-style:none;font-size:13px}
+  .reasons li{padding:3px 0;border-bottom:1px dashed var(--line)}
+  .reasons li:last-child{border:none}
+  .r-pass{color:var(--green)} .r-fail{color:var(--red)} .r-unknown{color:var(--amber)}
+  .attention{font-size:13px;color:var(--amber);margin-top:6px}
+  .empty{padding:38px 20px;text-align:center;color:var(--ink-3);border:1.5px dashed var(--line-2);
+    border-radius:var(--radius);background:var(--card)}
+  .failsum{font-size:12.5px;color:var(--ink-3);margin-top:10px}
+
+  /* ── 备考看板 ─────────────────────────── */
+  .tboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-bottom:18px}
+  .tcard{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--card);
+    box-shadow:var(--shadow)}
+  .tcard.open{border-left:3px solid var(--green)}
+  .tcard.prep{border-left:3px solid var(--amber)}
   .thead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
-  .thead b{font:600 15px var(--serif)}
-  .tbadge{font:12px var(--sans);padding:2px 9px;border-radius:999px;color:#fff;white-space:nowrap}
-  .tbadge.open{background:var(--green)} .tbadge.prep{background:var(--amber)}
-  .twin{font-size:13px;color:var(--red);font-weight:600;margin-bottom:4px}
+  .thead b{font-size:14.5px;font-weight:600}
+  .tbadge{font-size:12px;font-weight:600;padding:2px 10px;border-radius:99px;white-space:nowrap}
+  .tbadge.open{background:var(--green-weak);color:var(--green)}
+  .tbadge.prep{background:var(--amber-weak);color:var(--amber)}
+  .twin{font-size:12.5px;color:var(--ink-2);margin-bottom:4px}
+  .tcard.open .twin{color:var(--green)}
   .tcard.prep .twin{color:var(--amber)}
-  .tdesc,.tadvice{font-size:12.5px;color:var(--ink-2);margin-top:4px;line-height:1.55}
-  .tadvice::before{content:"➜ ";color:var(--red)}
+  .tdesc{font-size:12.5px;color:var(--ink-2);margin-top:4px;line-height:1.55}
+  .tadvice{font-size:12.5px;color:var(--acc);margin-top:6px}
+  .tadvice::before{content:"➜ "}
   .tnote{font-size:12.5px;color:var(--red);margin-top:6px;font-weight:600}
-  .prep-h{font:600 15px var(--serif);margin:22px 0 10px}
-  .job.archived{border-left-color:var(--ink-2);opacity:.88}
-  .job.archived h3 .tag{background:var(--ink-2)}
-  .llm-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);margin-bottom:12px}
-  .llm-dot{width:8px;height:8px;border-radius:50%;background:var(--ink-2);flex:none}
-  .llm-dot.on{background:var(--green)} .llm-dot.off{background:var(--red)}
+
+  footer{margin-top:44px;color:var(--ink-3);font-size:12px;text-align:center;
+    border-top:1px solid var(--line);padding-top:14px}
+
+  /* ── 弹窗 ─────────────────────────────── */
+  .overlay{position:fixed;inset:0;z-index:100;background:rgba(15,20,33,.45);
+    display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px 16px;
+    overflow:auto;animation:fadein .15s}
+  @keyframes fadein{from{opacity:0}}
+  .modal{background:#fff;border-radius:16px;width:520px;max-width:100%;
+    box-shadow:0 20px 60px rgba(15,20,33,.3);animation:pop .18s}
+  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.98)}}
+  .m-head{display:flex;justify-content:space-between;align-items:flex-start;
+    padding:18px 20px 0}
+  .m-head h3{margin:0;font-size:16px;font-weight:700}
+  .m-head p{margin:3px 0 0;font-size:12.5px;color:var(--ink-3)}
+  .m-body{padding:14px 20px 4px}
+  .step{margin-bottom:16px}
+  .step-t{font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:8px;display:flex;
+    align-items:center;gap:8px;flex-wrap:wrap}
+  .step-t .sub{font-weight:400;font-size:12px;color:var(--ink-3)}
+  .prov-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .prov{border:1.5px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px;
+    text-align:left;display:flex;align-items:center;gap:9px}
+  .prov .logo{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;
+    justify-content:center;color:#fff;font-size:13px;font-weight:700;flex:none}
+  .prov b{display:block;font-size:13.5px;font-weight:600;line-height:1.3}
+  .prov small{display:block;font-size:11px;color:var(--ink-3)}
+  .prov:hover{border-color:var(--line-2);background:var(--bg)}
+  .prov.sel{border-color:var(--acc);background:var(--acc-weak)}
   .keyrow{position:relative}
-  .keyrow input{padding-right:64px;font-family:var(--mono)}
+  .keyrow input{padding-right:60px;font-family:var(--mono);font-size:13.5px}
   .keyrow .peek{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;
-    background:none;color:var(--ink-2);font-size:12px;padding:4px 6px;cursor:pointer}
+    background:none;color:var(--ink-3);font-size:12px;padding:4px 6px}
   .keyrow .peek:hover{color:var(--ink)}
-  .hint{font-size:12px;color:var(--ink-2);margin-top:4px}
-  .tresult{font-size:13px;margin-top:8px;min-height:1em}
-  .tresult.ok{color:var(--green)} .tresult.bad{color:var(--red)}
-  footer{margin-top:40px;color:var(--ink-2);font-size:12px;text-align:center;border-top:1px solid var(--line);padding-top:14px}
+  .verify-row{display:flex;gap:10px;margin-top:8px;align-items:center}
+  .vres{font-size:12.5px;min-height:1.2em}
+  .vres.ok{color:var(--green)} .vres.bad{color:var(--red)}
+  .models{display:flex;flex-direction:column;gap:7px}
+  .models.locked{opacity:.55;pointer-events:none}
+  .model{border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;text-align:left;
+    background:#fff;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px}
+  .model:hover{border-color:var(--line-2)}
+  .model.sel{border-color:var(--acc);background:var(--acc-weak);color:var(--acc-deep);font-weight:600}
+  .model .mk{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line-2);flex:none;
+    display:inline-block}
+  .model.sel .mk{border:4.5px solid var(--acc)}
+  .m-hint{font-size:12px;color:var(--ink-3);margin-right:auto;max-width:240px}
+  .m-foot{display:flex;gap:10px;justify-content:flex-end;align-items:center;
+    padding:6px 20px 18px;border-top:1px solid var(--line);margin-top:6px;padding-top:14px}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#1f2329;
+    color:#fff;padding:10px 22px;border-radius:10px;font-size:14px;opacity:0;
+    transition:opacity .25s;pointer-events:none;z-index:200;box-shadow:0 8px 24px rgba(15,20,33,.35)}
+  .toast.show{opacity:.96}
+  .toast.err{background:var(--red)}
+
+  @media(max-width:640px){
+    .stats{grid-template-columns:1fr 1fr}
+    .prov-grid{grid-template-columns:1fr}
+    .brand small{display:none}
+    .m-hint{display:none}
+  }
 </style>
 </head>
 <body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <circle cx="13" cy="13" r="3" fill="#3056d3"/>
+        <path d="M13 5a8 8 0 0 1 8 8" stroke="#3056d3" stroke-width="2" stroke-linecap="round"/>
+        <path d="M13 1a12 12 0 0 1 12 12" stroke="#3056d3" stroke-width="2" stroke-linecap="round" opacity=".45"/>
+        <path d="M13 5A8 8 0 0 0 5 13" stroke="#3056d3" stroke-width="2" stroke-linecap="round"/>
+        <path d="M13 1A12 12 0 0 0 1 13" stroke="#3056d3" stroke-width="2" stroke-linecap="round" opacity=".45"/>
+      </svg>
+      <div><b>岗位雷达</b><small>体制内十条路径 · 每日抓取 · 三态匹配</small></div>
+    </div>
+    <div class="top-actions">
+      <button class="chip" id="llm-chip" title="大模型配置">
+        <span class="dot"></span><span id="llm-chip-text">未配置大模型</span>
+      </button>
+      <button class="icon-btn" id="btn-gear" title="设置" aria-label="设置">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
 <main>
-  <header>
-    <h1>岗位<span class="seal">雷达</span></h1>
-    <p>体制内十条路径 · 每日抓取 · 三态匹配——你能报什么，为什么</p>
-  </header>
+  <div class="stats" id="stats">
+    <div class="stat ok"><b id="n-eligible">–</b><span>✅ 可报名</span></div>
+    <div class="stat warn"><b id="n-insufficient">–</b><span>⚠ 待确认</span></div>
+    <div class="stat bad"><b id="n-ineligible">–</b><span>不可报（在招）</span></div>
+    <div class="stat arch"><b id="n-archived">–</b><span>已截止 · 存档</span></div>
+  </div>
 
   <section>
-    <h2>LLM 设置</h2>
-    <div class="card">
-      <div class="llm-status"><span class="llm-dot" id="llm-dot"></span><span id="llm-status-text">加载中…</span></div>
-      <div class="grid">
-        <div class="field" style="grid-column:1/-1"><label>API Key</label>
-          <div class="keyrow">
-            <input id="llm-key" type="password" placeholder="sk-…" autocomplete="off">
-            <button class="peek" id="llm-peek" type="button">显示</button>
-          </div>
-          <div class="hint">保存到后端 SQLite 数据库（data/govjob.db），仅本机存储。已保存的 Key 留空即不修改。</div>
+    <div class="section-h"><h2>我的档案</h2><span>专业代码决定匹配精度，改完记得保存</span></div>
+    <details class="pcard" id="profile-card" open>
+      <summary><span class="caret">▶</span><span class="psum" id="profile-sum"></span></summary>
+      <div class="pbody">
+        <div class="grid">
+          <div class="field"><label>称呼</label><input id="f-name" placeholder="可留空"></div>
+          <div class="field"><label>性别</label>
+            <select id="f-gender"><option value="">未填</option><option>男</option><option>女</option></select></div>
+          <div class="field"><label>出生日期</label><input id="f-birth" type="date"></div>
+          <div class="field"><label>政治面貌</label>
+            <select id="f-political"><option value="">未填</option><option>党员</option><option>预备党员</option><option>团员</option><option>群众</option></select></div>
+          <div class="field"><label>毕业状态</label>
+            <select id="f-fresh"><option value="">未填</option><option>应届毕业生</option><option>择业期内未落实工作</option><option>往届</option></select></div>
+          <div class="field"><label>学生干部经历</label>
+            <select id="f-cadre"><option value="">未填</option><option value="true">有</option><option value="false">没有</option></select></div>
+          <div class="field"><label>校级以上表彰</label>
+            <select id="f-award"><option value="">未填</option><option value="true">有</option><option value="false">没有</option></select></div>
+          <div class="field"><label>户籍省份</label><input id="f-household" placeholder="如 广东省"></div>
+          <div class="field"><label>生源省份</label><input id="f-origin" placeholder="如 山东省"></div>
         </div>
-        <div class="field"><label>接口地址 Base URL</label>
-          <input id="llm-base" placeholder="https://api.deepseek.com" style="font-family:var(--mono)"></div>
-        <div class="field"><label>模型</label>
-          <input id="llm-model" placeholder="deepseek-chat" style="font-family:var(--mono)"></div>
+
+        <fieldset id="edu-list"><legend>学历（按层次填，专业代码决定匹配精度）</legend></fieldset>
+        <button class="linkish" id="add-edu">＋ 添加一段学历</button>
+
+        <fieldset><legend>订阅省份（决定抓取哪些省的招聘公告）</legend>
+          <div class="provinces" id="provinces"></div>
+        </fieldset>
+
+        <div class="actions">
+          <button class="btn primary" id="btn-match">立即匹配</button>
+          <button class="btn ghost" id="btn-save">保存档案</button>
+        </div>
       </div>
-      <div class="actions" style="margin-top:14px">
-        <button class="btn" id="btn-llm-save">保存配置</button>
-        <button class="btn ghost" id="btn-llm-test">测试连接</button>
-        <span class="tresult" id="llm-result"></span>
-      </div>
-    </div>
+    </details>
   </section>
 
   <section>
-    <h2>我的档案</h2>
-    <div class="card">
-      <div class="grid">
-        <div class="field"><label>称呼</label><input id="f-name" placeholder="可留空"></div>
-        <div class="field"><label>性别</label>
-          <select id="f-gender"><option value="">未填</option><option>男</option><option>女</option></select></div>
-        <div class="field"><label>出生日期</label><input id="f-birth" type="date"></div>
-        <div class="field"><label>政治面貌</label>
-          <select id="f-political"><option value="">未填</option><option>党员</option><option>预备党员</option><option>团员</option><option>群众</option></select></div>
-        <div class="field"><label>毕业状态</label>
-          <select id="f-fresh"><option value="">未填</option><option>应届毕业生</option><option>择业期内未落实工作</option><option>往届</option></select></div>
-        <div class="field"><label>学生干部经历</label>
-          <select id="f-cadre"><option value="">未填</option><option value="true">有</option><option value="false">没有</option></select></div>
-        <div class="field"><label>校级以上表彰</label>
-          <select id="f-award"><option value="">未填</option><option value="true">有</option><option value="false">没有</option></select></div>
-        <div class="field"><label>户籍省份</label><input id="f-household" placeholder="如 广东省"></div>
-        <div class="field"><label>生源省份</label><input id="f-origin" placeholder="如 山东省"></div>
-      </div>
-
-      <fieldset id="edu-list"><legend>学历（按层次填，专业代码决定匹配精度）</legend></fieldset>
-      <button class="linkish" id="add-edu">＋ 添加一段学历</button>
-
-      <fieldset><legend>订阅省份（决定抓取哪些省的招聘公告）</legend>
-        <div class="provinces" id="provinces"></div>
-      </fieldset>
-
-      <div class="actions">
-        <button class="btn ghost" id="btn-save">保存档案</button>
-        <button class="btn" id="btn-match">立即匹配</button>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <h2>匹配结果</h2>
-    <div class="tabs">
-      <button class="tab active" id="tab-apply">✅ 可报名投递<span class="num" id="tab-apply-n"></span></button>
-      <button class="tab" id="tab-prep">📚 待报名 · 备考看板</button>
+    <div class="section-h"><h2>匹配结果</h2><span>本页仅展示报名截止日未过的岗位</span></div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" id="tab-apply" role="tab">✅ 可报名投递<span class="num" id="tab-apply-n"></span></button>
+      <button class="tab" id="tab-prep" role="tab">📚 待报名 · 备考看板</button>
     </div>
 
     <div id="pane-apply">
@@ -217,6 +341,48 @@
 
   <footer>govjob-radar · 个人自用工具 · 匹配结果仅供参考，报名资格以公告原文为准</footer>
 </main>
+
+<!-- 大模型设置弹窗：选供应商 → 贴 Key → 验证 → 选模型 → 保存（Base URL 后端封装） -->
+<div class="overlay" id="llm-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="llm-title">
+    <div class="m-head">
+      <div>
+        <h3 id="llm-title">大模型设置</h3>
+        <p>用于 C 类公告抽取 · 密钥仅存本机数据库，接口地址由后端管理</p>
+      </div>
+      <button class="icon-btn" id="llm-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="step">
+        <div class="step-t">1 · 选择模型供应商</div>
+        <div class="prov-grid" id="prov-grid"></div>
+      </div>
+      <div class="step" id="key-step" hidden>
+        <div class="step-t">2 · 粘贴 API Key
+          <a id="key-url" href="#" target="_blank" rel="noopener" class="sub">获取 Key ↗</a>
+        </div>
+        <div class="keyrow">
+          <input id="llm-key" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false">
+          <button class="peek" id="llm-peek" type="button">显示</button>
+        </div>
+        <div class="verify-row">
+          <button class="btn ghost" id="btn-verify">验证 Key</button>
+          <span class="vres" id="vres"></span>
+        </div>
+      </div>
+      <div class="step" id="model-step" hidden>
+        <div class="step-t">3 · 选择模型 <span class="sub" id="model-sub">验证通过后可选</span></div>
+        <div class="models locked" id="model-list"></div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <span class="m-hint" id="m-hint"></span>
+      <button class="btn ghost" id="llm-cancel">取消</button>
+      <button class="btn primary" id="btn-llm-save" disabled>保存配置</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -229,6 +395,7 @@ function toast(msg,err){const t=$('toast');t.textContent=msg;t.className='toast 
 async function api(path,opts){const r=await fetch(path,opts);const data=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(data.error||r.status);return data;}
 
+/* ── 档案 ─────────────────────────────── */
 function eduBlock(e,i){
   const d=document.createElement('fieldset');
   d.innerHTML=`<div class="edu-head"><b>学历 ${i+1}</b><button class="linkish" data-del>删除</button></div>
@@ -301,14 +468,26 @@ function fillProfile(p){
   $('f-household').value=p.household_province||'';$('f-origin').value=p.origin_province||'';
   document.querySelectorAll('#provinces input').forEach(x=>x.checked=(p.subscribed_provinces||[]).includes(x.value));
   EDU=(p.education||[]).map(e=>({...e}));renderEdu();
+  renderProfileSum(p);
+}
+function renderProfileSum(p){
+  const bits=[];
+  if(p.gender)bits.push(`<span class="tag-mini">${p.gender}</span>`);
+  const topEdu=(p.education||[]).slice(-1)[0];
+  if(topEdu){bits.push(`<span class="tag-mini">${topEdu.level}${topEdu.major_name?' · '+topEdu.major_name:''}</span>`);
+    if(topEdu.graduation_date)bits.push(`<span class="tag-mini">${topEdu.graduation_date.slice(0,7)} 毕业</span>`);}
+  if((p.subscribed_provinces||[]).length)bits.push(`<span class="tag-mini">订阅 ${p.subscribed_provinces.join('、')}</span>`);
+  $('profile-sum').innerHTML=bits.length?bits.join(''):
+    '<span class="empty-hint">档案未填——匹配精度取决于专业代码与毕业时间</span>';
 }
 
+/* ── 匹配结果 ─────────────────────────── */
 function daysTo(d){if(!d)return null;const ms=new Date(d+'T23:59:59')-new Date();
   return Math.ceil(ms/86400000);}
 function srcHtml(j){
   const u=j.source_url||'';
   if(u.startsWith('http'))return `<div class="meta"><a href="${u}" target="_blank" rel="noopener">公告原文 ↗</a></div>`;
-  if(u.startsWith('file://'))return `<div class="meta">来源职位表：${u.slice(7)}</div>`;  // 本地投放的 xlsx
+  if(u.startsWith('file://'))return `<div class="meta">来源职位表：${u.slice(7)}</div>`;
   return '';
 }
 function jobCard(j){
@@ -318,13 +497,13 @@ function jobCard(j){
   const reasons=j.reasons.map(r=>`<li class="r-${r.status}">${r.field}：${r.detail}</li>`).join('');
   const att=(j.attention||[]).map(a=>`<div class="attention">⚠ ${a}</div>`).join('');
   return `<div class="job ${warn?'warn':''}">
-    <h3><span class="tag ${warn?'warn':'ok'}">${warn?'⚠ 可能可报':'✅ 可报'}</span>${j.title}</h3>
+    <h3><span class="pill ${warn?'warn':'ok'}">${warn?'⚠ 可能可报':'✅ 可报'}</span>${j.title}</h3>
     <div class="meta">${j.employer} · ${j.path_name} · ${j.region||'—'}${j.quota?` · 招${j.quota}人`:''}${dlHtml}</div>
-    <details><summary>判定依据（${j.reasons.length} 项）</summary><ul class="reasons">${reasons}</ul></details>
+    <details class="jwhy"><summary>判定依据（${j.reasons.length} 项）</summary><ul class="reasons">${reasons}</ul></details>
     ${att}${srcHtml(j)}
   </div>`;
 }
-let LAST=null;  // 最近一次匹配结果（客户端筛选用）
+let LAST=null;
 function switchTab(which){
   const apply=which==='apply';
   $('tab-apply').classList.toggle('active',apply);
@@ -354,10 +533,12 @@ function renderPrep(d){
 }
 function renderMatch(d){
   LAST=d;
-  $('tab-apply-n').textContent=(d.counts.eligible+d.counts.insufficient)||'0';
+  const c=d.counts;
+  $('n-eligible').textContent=c.eligible;$('n-insufficient').textContent=c.insufficient;
+  $('n-ineligible').textContent=c.ineligible;$('n-archived').textContent=c.archived_expired;
+  $('tab-apply-n').textContent=(c.eligible+c.insufficient)||'0';
   renderPrep(d);
-  if(!d.counts.jobs_total){$('results').innerHTML=`<div class="empty">职位表还没就位：把国考/省考职位表 xlsx 放进 data/inbox 后再匹配。<br>（当前解析失败文件 ${d.counts.bad_files} 个）</div>`;$('filters').hidden=true;return;}
-  // 路径筛选chips（一次性生成，保留勾选状态）
+  if(!c.jobs_total){$('results').innerHTML=`<div class="empty">职位表还没就位：把国考/省考职位表 xlsx 放进 data/inbox 后再匹配。<br>（当前解析失败文件 ${c.bad_files} 个）</div>`;$('filters').hidden=true;return;}
   const box=$('f-paths');
   if(!box.childElementCount){
     box.innerHTML=Object.entries(META.paths).map(([k,v])=>
@@ -383,10 +564,10 @@ function applyFilters(){
     return true;});
   const c=LAST.counts;
   const total=hit.length;
-  $('f-count').innerHTML=`筛选出 ${total} / ${all.length} 条（在招 ${c.jobs_total} 岗：可报 ${c.eligible} · 待确认 ${c.insufficient} · 不可报 ${c.ineligible}${c.archived_expired?` · 已截止存档 ${c.archived_expired}`:''}；本页仅展示报名截止日未过的岗位）`+
+  $('f-count').innerHTML=`筛选出 ${total} / ${all.length} 条（在招 ${c.jobs_total} 岗：可报 ${c.eligible} · 待确认 ${c.insufficient} · 不可报 ${c.ineligible}${c.archived_expired?` · 已截止存档 ${c.archived_expired}`:''}）`+
     (q||verdict||paths.size<Object.keys(META.paths).length?` <button onclick="resetFilters()">重置</button>`:'');
-  $('results').innerHTML=total?hit.map(jobCard).join(''):
-    `<div class="empty">没有符合当前筛选的岗位——试试放宽条件。</div>`+
+  $('results').innerHTML=(total?hit.map(jobCard).join(''):
+    `<div class="empty">没有符合当前筛选的岗位——试试放宽条件。</div>`)+
     (LAST.top_fail_reasons.length?`<div class="failsum">不可报 ${c.ineligible} 条 · 主因：${LAST.top_fail_reasons.join('；')}</div>`:'');
 }
 function resetFilters(){
@@ -400,59 +581,197 @@ async function runMatch(){
   try{
     let data;
     try{data=await api('/api/match',{method:'POST'});}
-    catch(e1){  // 服务瞬时重启/连接抖动：自动重试一次
+    catch(e1){
       await new Promise(r=>setTimeout(r,800));
       data=await api('/api/match',{method:'POST'});
     }
     renderMatch(data);
-    $('f-updated').textContent='数据更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
-  }catch(e){toast('匹配失败：'+e.message+'（请确认服务在运行：python -m app.cli serve）',true);}
+    $('f-updated').textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+  }catch(e){toast('匹配失败：'+e.message+'（请确认服务在运行）',true);}
   finally{b.disabled=false;b.textContent='立即匹配';}
 }
 
 $('add-edu').onclick=()=>{EDU.push({level:'硕士',major_name:'',major_code:'',catalog:null});renderEdu();collectEdu();};
 $('btn-save').onclick=async()=>{collectEdu();const b=$('btn-save');b.disabled=true;
-  try{await api('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(collectProfile())});toast('档案已保存 ✓');}
+  try{const p=collectProfile();
+    await api('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(p)});
+    renderProfileSum(p);toast('档案已保存 ✓');}
   catch(e){toast('保存失败：'+e.message,true);}finally{b.disabled=false;}};
 $('btn-match').onclick=runMatch;
 
-// ── LLM 设置（保存到后端 SQLite）──────────────────────────
+/* ── 大模型设置（齿轮弹窗：供应商→Key→验证→模型→保存）── */
+const PROV_COLORS={deepseek:'#3b82f6',moonshot:'#7c3aed',zhipu:'#0ea5e9',qwen:'#f59e0b',openai:'#10b981'};
+const PROV_SHORT={deepseek:'DS',moonshot:'Kimi',zhipu:'GLM',qwen:'通义',openai:'GPT'};
+let PROVIDERS=null,MODAL={provider:'',verified:false,model:''};
+
+function llmChipRender(cfg){
+  const chip=$('llm-chip');
+  chip.classList.toggle('on',!!cfg.configured);
+  $('llm-chip-text').textContent=cfg.configured
+    ?`${cfg.provider_name||cfg.provider} · ${cfg.model||'未选模型'}`
+    :'未配置大模型';
+}
+function openModal(){
+  $('llm-overlay').hidden=false;
+  if(PROVIDERS)renderProvGrid();
+  else loadProviders();
+  resetModalState();
+  // 已配置：预选当前供应商/模型；Key 显示脱敏占位（留空=沿用）
+  if(LLM_CFG.configured){
+    MODAL.provider=LLM_CFG.provider;
+    MODAL.model=LLM_CFG.model||'';
+    if(PROVIDERS)applyExistingConfig();
+    $('llm-key').placeholder=`${LLM_CFG.api_key_masked}（留空沿用当前 Key）`;
+    updateSaveState();
+  }
+}
+function applyExistingConfig(){
+  if(!PROVIDERS)return;
+  renderProvGrid();
+  $('key-step').hidden=false;$('model-step').hidden=false;
+  renderModels();
+  // 已配置且不换 Key：模型直接可选
+  const p=PROVIDERS.find(x=>x.id===MODAL.provider);
+  if(p){$('key-url').href=p.key_url;}
+  if(MODAL.model)selectModel(MODAL.model,true);
+  $('model-sub').textContent='已验证过 · 可直接切换模型';
+  $('model-list').classList.remove('locked');
+}
+function closeModal(){$('llm-overlay').hidden=true;}
+function resetModalState(){
+  MODAL={provider:LLM_CFG.configured?LLM_CFG.provider:'',verified:false,model:LLM_CFG.configured?(LLM_CFG.model||''):''};
+  $('llm-key').value='';$('llm-key').placeholder='sk-…';
+  $('llm-key').type='password';$('llm-peek').textContent='显示';
+  $('vres').textContent='';$('vres').className='vres';
+  $('key-step').hidden=!LLM_CFG.configured;
+  $('model-step').hidden=!LLM_CFG.configured;
+  $('model-list').classList.add('locked');
+  $('model-sub').textContent='验证通过后可选';
+  $('m-hint').textContent='';
+  updateSaveState();
+}
+async function loadProviders(){
+  try{
+    const d=await api('/api/llm/providers');
+    PROVIDERS=d.providers;
+    renderProvGrid();
+    if(LLM_CFG.configured)applyExistingConfig();
+  }catch(e){toast('供应商列表加载失败：'+e.message,true);}
+}
+function renderProvGrid(){
+  $('prov-grid').innerHTML=PROVIDERS.map(p=>`
+    <button type="button" class="prov ${p.id===MODAL.provider?'sel':''}" data-prov="${p.id}">
+      <span class="logo" style="background:${PROV_COLORS[p.id]||'#64748b'}">${PROV_SHORT[p.id]||p.name.slice(0,2)}</span>
+      <span><b>${p.name}</b><small>${p.models.length} 个模型可选</small></span>
+    </button>`).join('');
+  $('prov-grid').querySelectorAll('.prov').forEach(b=>b.onclick=()=>{
+    const pid=b.dataset.prov;
+    if(MODAL.provider===pid)return;
+    MODAL.provider=pid;MODAL.verified=false;MODAL.model='';
+    renderProvGrid();
+    // 切供应商：上一次的 Key/验证作废
+    $('llm-key').value='';$('llm-key').placeholder='sk-…';
+    $('vres').textContent='';$('vres').className='vres';
+    $('key-step').hidden=false;$('model-step').hidden=false;
+    $('model-list').classList.add('locked');
+    $('model-sub').textContent='验证通过后可选';
+    renderModels();
+    const p=PROVIDERS.find(x=>x.id===pid);
+    if(p)$('key-url').href=p.key_url;
+    updateSaveState();
+  });
+}
+function renderModels(){
+  const p=PROVIDERS&&PROVIDERS.find(x=>x.id===MODAL.provider);
+  if(!p){$('model-list').innerHTML='';return;}
+  $('model-list').innerHTML=p.models.map(m=>`
+    <button type="button" class="model ${m===MODAL.model?'sel':''}" data-model="${m}">
+      <span class="mk"></span>${m}
+    </button>`).join('');
+  $('model-list').querySelectorAll('.model').forEach(b=>b.onclick=()=>{
+    MODAL.model=b.dataset.model;
+    $('model-list').querySelectorAll('.model').forEach(x=>x.classList.toggle('sel',x===b));
+    updateSaveState();
+  });
+}
+function selectModel(m,silent){
+  MODAL.model=m;
+  if(!PROVIDERS)return;
+  renderModels();
+  if(!silent)updateSaveState();
+}
+function updateSaveState(){
+  const keyEntered=$('llm-key').value.trim().length>0;
+  const keyKept=!keyEntered&&LLM_CFG.configured&&MODAL.provider===LLM_CFG.provider;
+  const ok=MODAL.provider&&(MODAL.model)&&((MODAL.verified&&keyEntered)||keyKept||(MODAL.verified&&!keyEntered&&LLM_CFG.configured));
+  $('btn-llm-save').disabled=!ok;
+  if(ok&&keyKept)$('m-hint').textContent='沿用已保存的 Key，仅更新供应商/模型';
+  else if(ok)$('m-hint').textContent='';
+  else if(keyEntered&&!MODAL.verified)$('m-hint').textContent='新 Key 需先验证通过';
+  else if(!keyEntered&&!LLM_CFG.configured)$('m-hint').textContent='';
+  else if(!MODAL.model)$('m-hint').textContent='请选择模型';
+  else $('m-hint').textContent='';
+}
+$('llm-key').addEventListener('input',()=>{
+  MODAL.verified=false;  // Key 改动后需重新验证
+  const keyEntered=$('llm-key').value.trim().length>0;
+  if(keyEntered){$('model-list').classList.add('locked');$('model-sub').textContent='验证通过后可选';}
+  updateSaveState();
+});
 $('llm-peek').onclick=()=>{const i=$('llm-key'),on=i.type==='password';
   i.type=on?'text':'password';$('llm-peek').textContent=on?'隐藏':'显示';};
-function llmRender(cfg){
-  const dot=$('llm-dot'),txt=$('llm-status-text');
-  dot.className='llm-dot '+(cfg.configured?'on':'off');
-  txt.textContent=cfg.configured?`已配置 ${cfg.api_key_masked}${cfg.model?' · '+cfg.model:''}`:'未配置（C 类公告抽取将跳过）';
-  $('llm-base').value=cfg.base_url||'';$('llm-model').value=cfg.model||'';
-  $('llm-key').placeholder=cfg.configured?cfg.api_key_masked+'（留空不修改）':'sk-…';
-  $('llm-key').value='';
-}
-async function llmLoad(){try{llmRender(await api('/api/llm'));}catch(e){
-  $('llm-status-text').textContent='加载失败：'+e.message;}}
-$('btn-llm-save').onclick=async()=>{const b=$('btn-llm-save');b.disabled=true;b.textContent='保存中…';
-  const r=$('llm-result');r.textContent='';
+$('btn-verify').onclick=async()=>{
+  const b=$('btn-verify');b.disabled=true;b.textContent='验证中…';
+  const r=$('vres');r.className='vres';r.textContent='';
   try{
-    const body={base_url:$('llm-base').value.trim(),model:$('llm-model').value.trim()};
-    const key=$('llm-key').value.trim();if(key)body.api_key=key;  // 留空=保留原值
-    const saved=await api('/api/llm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    llmRender(saved.saved);toast('LLM 配置已保存到数据库 ✓');
-  }catch(e){toast('保存失败：'+e.message,true);}finally{b.disabled=false;b.textContent='保存配置';}};
-$('btn-llm-test').onclick=async()=>{const b=$('btn-llm-test');b.disabled=true;b.textContent='测试中…';
-  const r=$('llm-result');r.className='tresult';r.textContent='';
-  try{const t=await api('/api/llm/test',{method:'POST'});
-    r.className='tresult '+(t.ok?'ok':'bad');r.textContent=(t.ok?'✓ ':'✗ ')+t.detail;}
-  catch(e){r.className='tresult bad';r.textContent='✗ '+(e.message||'服务未启动');}
-  finally{b.disabled=false;b.textContent='测试连接';}};
+    const t=await api('/api/llm/verify',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({provider:MODAL.provider,api_key:$('llm-key').value.trim()})});
+    if(t.ok){
+      MODAL.verified=true;
+      r.className='vres ok';r.textContent='✓ '+t.detail;
+      $('model-list').classList.remove('locked');
+      $('model-sub').textContent=`${t.provider_name} 连接正常 · 选择模型后保存`;
+      if(!MODAL.model)selectModel(PROVIDERS.find(x=>x.id===MODAL.provider).models[0],true);
+    }else{
+      r.className='vres bad';r.textContent='✗ '+t.detail;
+    }
+  }catch(e){r.className='vres bad';r.textContent='✗ '+(e.message||'服务未启动');}
+  finally{b.disabled=false;b.textContent='验证 Key';updateSaveState();}
+};
+$('btn-llm-save').onclick=async()=>{
+  const b=$('btn-llm-save');b.disabled=true;b.textContent='保存中…';
+  try{
+    const body={provider:MODAL.provider,model:MODAL.model};
+    const key=$('llm-key').value.trim();
+    if(key)body.api_key=key;  // 留空=沿用已存 Key
+    const saved=await api('/api/llm',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)});
+    LLM_CFG=saved.saved;
+    llmChipRender(LLM_CFG);
+    closeModal();
+    toast('大模型配置已保存 ✓');
+  }catch(e){toast('保存失败：'+e.message,true);}
+  finally{b.disabled=false;b.textContent='保存配置';}
+};
+$('btn-gear').onclick=openModal;
+$('llm-chip').onclick=openModal;
+$('llm-close').onclick=closeModal;
+$('llm-cancel').onclick=closeModal;
+$('llm-overlay').addEventListener('click',e=>{if(e.target===$('llm-overlay'))closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('llm-overlay').hidden)closeModal();});
 
+/* ── 初始化 ───────────────────────────── */
 (async function init(){
   try{
     META=await api('/api/meta');
     $('provinces').innerHTML=META.provinces.map(p=>
       `<label><input type="checkbox" value="${p}"><span>${p}</span></label>`).join('');
-    fillProfile(await api('/api/profile'));
-    llmLoad();  // LLM 设置卡片（异步加载，不阻塞匹配）
-    await runMatch();  // 进入页面自动跑一次匹配，无需手动点击
+    const p=await api('/api/profile');
+    fillProfile(p);
+    if(!(p.education||[]).length)$('profile-card').open=true;  // 空档案引导填写
+    try{LLM_CFG=await api('/api/llm');llmChipRender(LLM_CFG);}catch(e){llmChipRender({});}
+    await runMatch();
   }catch(e){toast('初始化失败：'+e.message,true);}
 })();
 </script>

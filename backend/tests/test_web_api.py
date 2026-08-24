@@ -95,23 +95,50 @@ class TestWebAPI(unittest.TestCase):
             self.assertEqual(e.code, 400)
 
     def test_llm_save_and_masked_readback(self):
-        """保存 → 只回传脱敏 key，明文绝不离开服务端。"""
-        status, data = self._post("/api/llm", {"api_key": "sk-webtest-abcdef1234", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"})
+        """保存（供应商+Key+模型）→ 只回传脱敏 key；视图不含 base_url（后端封装）。"""
+        status, data = self._post("/api/llm", {"provider": "deepseek", "api_key": "sk-webtest-abcdef1234", "model": "deepseek-chat"})
         self.assertEqual(status, 200)
         self.assertTrue(data["ok"])
         self.assertEqual(data["saved"]["api_key_masked"], "sk-w****1234")
+        self.assertEqual(data["saved"]["provider"], "deepseek")
         self.assertNotIn("sk-webtest-abcdef1234", json.dumps(data))
+        self.assertNotIn("base_url", json.dumps(data))  # 接口地址不出后端
 
         status, view = self._get("/api/llm")
         self.assertEqual(status, 200)
         self.assertTrue(view["configured"])
         self.assertEqual(view["api_key_masked"], "sk-w****1234")
         self.assertEqual(view["model"], "deepseek-chat")
+        self.assertEqual(view["provider"], "deepseek")
+        self.assertNotIn("base_url", view)
+
+    def test_llm_unknown_provider_400(self):
+        """未知供应商拒绝保存（base_url 只能来自后端注册表）。"""
+        status, data = self._post("/api/llm", {"provider": "no-such-vendor", "api_key": "sk-x", "model": "m"})
+        self.assertEqual(status, 400)
+
+    def test_llm_providers_list(self):
+        """供应商列表：含模型与取 Key 入口，不含 base_url。"""
+        status, data = self._get("/api/llm/providers")
+        self.assertEqual(status, 200)
+        ids = [p["id"] for p in data["providers"]]
+        self.assertIn("deepseek", ids)
+        for p in data["providers"]:
+            self.assertTrue(p["models"])
+            self.assertTrue(p["key_url"].startswith("http"))
+        self.assertNotIn("base_url", json.dumps(data))
+
+    def test_llm_verify_validation(self):
+        """verify：未知供应商 400；空 Key 400（不打真实外网）。"""
+        status, _ = self._post("/api/llm/verify", {"provider": "nope", "api_key": "sk-x"})
+        self.assertEqual(status, 400)
+        status, _ = self._post("/api/llm/verify", {"provider": "deepseek", "api_key": ""})
+        self.assertEqual(status, 400)
 
     def test_llm_empty_key_keeps_saved(self):
         """Key 留空只改模型 → 旧 Key 保留（前端"留空不修改"）。"""
-        self._post("/api/llm", {"api_key": "sk-keep-987654321", "model": "deepseek-chat"})
-        status, data = self._post("/api/llm", {"api_key": "", "model": "deepseek-reasoner"})
+        self._post("/api/llm", {"provider": "deepseek", "api_key": "sk-keep-987654321", "model": "deepseek-chat"})
+        status, data = self._post("/api/llm", {"provider": "deepseek", "api_key": "", "model": "deepseek-reasoner"})
         self.assertEqual(status, 200)
         status, view = self._get("/api/llm")
         self.assertEqual(view["model"], "deepseek-reasoner")
@@ -119,7 +146,9 @@ class TestWebAPI(unittest.TestCase):
 
     def test_llm_connection_test_bad_base_url(self):
         """连通测试打到不可达地址 → ok=False（不发真实外网请求）。"""
-        self._post("/api/llm", {"api_key": "sk-webtest-abcdef1234", "base_url": "http://127.0.0.1:9"})
+        from app.store.db import save_llm_config
+
+        save_llm_config(self.db_file, api_key="sk-webtest-abcdef1234", base_url="http://127.0.0.1:9", provider="deepseek")
         status, result = self._post("/api/llm/test", {})
         self.assertEqual(status, 200)
         self.assertFalse(result["ok"])

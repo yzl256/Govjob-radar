@@ -24,20 +24,43 @@ class TestSQLiteStore(unittest.TestCase):
 
     def test_llm_config_roundtrip(self):
         self.assertIsNone(dbstore.get_llm_config(self.db))
-        saved = dbstore.save_llm_config(self.db, api_key="sk-abc123def456", base_url="https://api.deepseek.com/", model="deepseek-chat")
+        saved = dbstore.save_llm_config(self.db, provider="deepseek", api_key="sk-abc123def456", base_url="https://api.deepseek.com/", model="deepseek-chat")
         self.assertEqual(saved["api_key"], "sk-abc123def456")
         self.assertEqual(saved["base_url"], "https://api.deepseek.com")  # 尾斜杠剥掉
         row = dbstore.get_llm_config(self.db)
         self.assertEqual(row["api_key"], "sk-abc123def456")
         self.assertEqual(row["model"], "deepseek-chat")
+        self.assertEqual(row["provider"], "deepseek")
         self.assertTrue(row["updated_at"])
 
     def test_llm_config_partial_update_keeps_old(self):
         """前端"Key 留空不改"语义：None 字段保留原值。"""
-        dbstore.save_llm_config(self.db, api_key="sk-keep-me-000", base_url="https://api.deepseek.com", model="deepseek-chat")
+        dbstore.save_llm_config(self.db, provider="deepseek", api_key="sk-keep-me-000", base_url="https://api.deepseek.com", model="deepseek-chat")
         saved = dbstore.save_llm_config(self.db, api_key=None, base_url=None, model="deepseek-reasoner")
         self.assertEqual(saved["api_key"], "sk-keep-me-000")  # 未传 → 保留
         self.assertEqual(saved["model"], "deepseek-reasoner")
+        self.assertEqual(saved["provider"], "deepseek")
+
+    def test_migration_adds_provider_column(self):
+        """旧库（无 provider 列）→ connect 时补列，已有 key 回填 deepseek。"""
+        import sqlite3
+
+        TEST_DIR.mkdir(parents=True, exist_ok=True)
+        old = TEST_DIR / "old_schema.db"
+        conn = sqlite3.connect(str(old))
+        conn.execute(
+            "CREATE TABLE llm_config (id INTEGER PRIMARY KEY CHECK (id=1), api_key TEXT NOT NULL DEFAULT '',"
+            " base_url TEXT NOT NULL DEFAULT '', model TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL)"
+        )
+        conn.execute(
+            "INSERT INTO llm_config (id, api_key, base_url, model, updated_at) VALUES (1, 'sk-old-key-123', 'https://api.deepseek.com', 'deepseek-chat', '2025-01-01')"
+        )
+        conn.commit()
+        conn.close()
+        # 触发迁移（get_llm_config → connect → _migrate）
+        row = dbstore.get_llm_config(old)
+        self.assertEqual(row["provider"], "deepseek")  # 回填
+        self.assertEqual(row["api_key"], "sk-old-key-123")  # 原数据不动
 
     def test_mask_key(self):
         self.assertEqual(dbstore.mask_key("sk-abc123def456"), "sk-a****f456")

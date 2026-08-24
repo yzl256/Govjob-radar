@@ -103,11 +103,13 @@ class HttpLLM:
         raise RuntimeError(f"LLM 调用失败: {last_err}")
 
 
-def test_llm_connection(api_key: str, base_url: str, timeout: int = 15) -> dict:
+def test_llm_connection(api_key: str, base_url: str, model: str = "", timeout: int = 15) -> dict:
     """轻量连通性验证：GET {base_url}/models（OpenAI 兼容端点，不耗 token）。
+    供应商未实现 /models（404/405）时兜底：发一条 max_tokens=1 的对话（约耗几十 token）。
     返回 {ok, detail}；HTTP 401/403 = key 无效，其他错误原样带出。"""
+    base = base_url.rstrip("/")
     req = urllib.request.Request(
-        f"{base_url.rstrip('/')}/models",
+        f"{base}/models",
         headers={"Authorization": f"Bearer {api_key}"},
     )
     try:
@@ -115,6 +117,30 @@ def test_llm_connection(api_key: str, base_url: str, timeout: int = 15) -> dict:
             data = json.loads(resp.read().decode())
         n = len(data.get("data") or [])
         return {"ok": True, "detail": f"连接成功，服务端返回 {n} 个可用模型"}
+    except urllib.error.HTTPError as e:
+        if e.code in (404, 405):
+            return _ping_chat(api_key, base, model, timeout)  # 端点不存在 → 1-token 探测
+        hint = {401: "API Key 无效或已过期", 403: "无权限（Key 被禁用或额度受限）"}.get(e.code, f"HTTP {e.code}")
+        return {"ok": False, "detail": f"{hint}"}
+    except Exception as e:
+        return {"ok": False, "detail": f"连接失败: {e}"}
+
+
+def _ping_chat(api_key: str, base: str, model: str, timeout: int) -> dict:
+    """/models 不可用时的兜底：最小对话请求（max_tokens=1）验证 key 有效性。"""
+    payload = json.dumps(
+        {"model": model or "ping", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1, "stream": False}
+    ).encode()
+    req = urllib.request.Request(
+        f"{base}/chat/completions",
+        data=payload,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            resp.read()
+        return {"ok": True, "detail": "连接成功（对话端点验证）"}
     except urllib.error.HTTPError as e:
         hint = {401: "API Key 无效或已过期", 403: "无权限（Key 被禁用或额度受限）"}.get(e.code, f"HTTP {e.code}")
         return {"ok": False, "detail": f"{hint}"}
