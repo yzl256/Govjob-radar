@@ -26,18 +26,33 @@
 | 存储 | SQLite（`data/govjob.db`：LLM 配置 + 档案）· JSONL（岗位库） |
 | LLM | OpenAI 兼容 API（默认 DeepSeek，stdlib urllib） |
 
-## 快速开始
+## 开箱即用
+
+```bash
+git clone https://github.com/yzl256/findwork.git
+cd findwork
+```
+
+- **Windows**：双击 `启动.bat` —— 检查 Python → 装依赖（仅 pydantic）→ 首次自动播种样例职位表 → 起服务 → 开浏览器
+- **macOS / Linux**：`chmod +x start.sh && ./start.sh`
+- **手动两条命令**：
 
 ```bash
 cd backend
-pip install -r requirements.txt        # 仅 pydantic
-
-python -m unittest discover -s tests -v # 182 tests
-python -m app.cli demo                  # 端到端演示（样例职位表→匹配→日报）
-python -m app.cli serve [--port=8420]   # H5 界面 → http://127.0.0.1:8420
+pip install -r requirements.txt && python -m app.cli serve
 ```
 
-H5 页面「LLM 设置」卡填入 DeepSeek API Key（存本机 SQLite，`/models` 端点测试不耗 token），「我的档案」填学历/专业代码后点「立即匹配」。
+打开页面（http://127.0.0.1:8420，自动打开）后三步完成配置——全部页面操作，无需改任何代码：
+
+1. **LLM 设置**卡 → 填 DeepSeek API Key → 保存 → 测试连接（存本机 SQLite，只回脱敏形式）
+2. **我的档案**卡 → 学历/专业代码/出生日期 → 保存（首访自动建 SQLite/目录，无需预置文件）
+3. 点「立即匹配」——样例职位表 5 岗即刻可见；正式职位表（国考/省考 xlsx）放进 `data/inbox/` 即自动参与匹配
+
+```bash
+python -m unittest discover -s tests -v # 186 tests
+python -m app.cli demo                  # 端到端演示（样例→匹配→日报）
+python -m app.cli serve --no-open       # 起服务不开浏览器（脚本/服务器场景）
+```
 
 ```bash
 # 每日流水线（抓取→解析→匹配→落盘→推送）
@@ -63,13 +78,15 @@ python -m app.cli test-notify
 │   │   ├── store/         # 岗位库 JSONL + SQLite 持久层
 │   │   ├── notify/        # Console / Server酱 / SMTP
 │   │   └── web/           # 零依赖 Web 服务
-│   └── tests/             # 182 个单测
+│   └── tests/             # 186 个单测
 ├── config/
 │   ├── sources/           # 源站注册表 YAML（national + 粤/鲁/浙）
 │   ├── profiles/          # 用户档案（demo_user.json 为样例）
 │   ├── majors/            # 三套专业目录 CSV + 别名表
 │   └── schools/           # 双一流名单 CSV
 ├── web/index.html         # H5 单文件页
+├── 启动.bat               # Windows 双击启动
+├── start.sh               # macOS/Linux 一键启动
 └── 体制内岗位推荐系统-设计文档.md
 ```
 

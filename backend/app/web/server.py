@@ -275,8 +275,22 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "not found"})
 
 
-def run(root: Path, port: int = 8420) -> None:
+def run(root: Path, port: int = 8420, open_browser: bool = True) -> None:
     Handler.state = _State(Path(root))
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"[web] http://127.0.0.1:{port}  (Ctrl+C 停止)")
+    url = f"http://127.0.0.1:{port}"
+    if open_browser:
+        import threading
+        import webbrowser
+
+        t = threading.Timer(0.8, webbrowser.open, args=(url,))  # 等端口就绪再开页
+        t.daemon = True
+        t.start()
+    try:  # Windows GBK 控制台遇到 emoji/宽字符时降级替换而不是崩栈
+        import sys
+
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    print(f"[web] {url}  (Ctrl+C 停止)")
     httpd.serve_forever()

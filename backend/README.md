@@ -1,16 +1,20 @@
 # govjob-radar backend（P2）
 
-体制内岗位推荐系统 · 后端。当前进度：**P2 可日用**——调度抓取（best-effort+健康记录）→ 职位表解析 → 三态匹配 → H5 界面 + 推送，115 个单测全绿。
+体制内岗位推荐系统 · 后端。当前进度：**P2 可日用**——调度抓取（best-effort+健康记录）→ 职位表解析 → 三态匹配 → H5 界面 + 推送，186 个单测全绿。
 
 ## 快速开始
 
+**开箱即用**：仓库根双击 `启动.bat`（Windows）或 `./start.sh`（macOS/Linux）——自动装依赖、全新环境首次启动播种样例职位表（已有数据绝不覆盖，`data/.seeded` 标记防重复）、起服务并开浏览器。
+
 ```bash
 pip install -r requirements.txt   # 仅 pydantic
-python -m unittest discover -s tests -v   # 182 tests
+python -m unittest discover -s tests -v   # 186 tests
 python -m app.cli demo                    # 端到端演示：生成样例职位表→解析→匹配→日报
 python -m app.cli daily [--no-fetch] [--watch=21600]
                                           # 单趟/循环流水线：抓取→解析→匹配→落盘→推送
-python -m app.cli serve [--port=8420]     # H5 界面（档案表单+LLM设置+订阅省份+三态结果）
+python -m app.cli serve [--port=8420] [--no-open]
+                                           # H5 界面（档案表单+LLM设置+订阅省份+双页签结果）
+                                           # 全新环境首次启动自动播种样例职位表并开浏览器
 python -m app.cli extract <url|文件.html> [--source=gd-rcyj] [--path=5]
                                           # C 类公告 LLM 抽取联调（需 LLM Key：H5「LLM 设置」保存到 SQLite，
                                           # 或环境变量 DEEPSEEK_API_KEY/LLM_API_KEY；离线回放：

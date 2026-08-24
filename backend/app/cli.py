@@ -128,10 +128,31 @@ def test_notify() -> int:
     return 0
 
 
-def serve(port: int) -> int:
+def _ensure_seed(root: Path) -> bool:
+    """开箱即用初始化：建 data 目录树；全新环境（无任何岗位数据）时播种样例职位表。
+    已有任何数据或已播种过（data/.seeded 标记）则不动用户数据。返回是否播种。"""
+    inbox = root / "data" / "inbox"
+    outbox = root / "data" / "out"
+    inbox.mkdir(parents=True, exist_ok=True)
+    outbox.mkdir(parents=True, exist_ok=True)
+    marker = root / "data" / ".seeded"
+    if marker.exists():
+        return False
+    store = root / "data" / "jobs.jsonl"
+    has_data = any(inbox.glob("*.xlsx")) or (store.exists() and store.stat().st_size > 0)
+    if has_data:
+        return False  # 老用户/已有数据：绝不覆盖
+    _write_sample(inbox / "sample_guokao_2027.xlsx")
+    marker.write_text(f"seeded {time.strftime('%Y-%m-%d %H:%M:%S')}\n", encoding="utf-8")
+    return True
+
+
+def serve(port: int, open_browser: bool = True) -> int:
     from app.web.server import run
 
-    run(ROOT, port)
+    if _ensure_seed(ROOT):
+        print("[serve] 已播种样例职位表 sample_guokao_2027.xlsx（data/inbox）——正式职位表放入同目录即可替换")
+    run(ROOT, port, open_browser=open_browser)
     return 0
 
 
@@ -216,10 +237,11 @@ def main(argv: list[str]) -> int:
         return test_notify()
     if len(argv) >= 2 and argv[1] == "serve":
         port = 8420
+        open_browser = "--no-open" not in argv
         for a in argv[2:]:
             if a.startswith("--port="):
                 port = int(a.split("=", 1)[1])
-        return serve(port)
+        return serve(port, open_browser=open_browser)
     if len(argv) >= 4 and argv[1] == "match":
         from app.models.profile import UserProfile
 
@@ -233,6 +255,8 @@ def main(argv: list[str]) -> int:
         return 0
     print(
         "用法:\n"
+        "  python -m app.cli serve [--port=8420] [--no-open]\n"
+        "                                                # H5 界面（首次自动播种样例职位表+开浏览器）\n"
         "  python -m app.cli demo                        # 样例端到端\n"
         "  python -m app.cli daily [--no-fetch] [--watch=21600]\n"
         "                                                # 单趟/循环流水线\n"
