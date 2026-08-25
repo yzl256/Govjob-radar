@@ -3,12 +3,20 @@
 data/govjob.db
 data/govjob.db-wal
 data/govjob.db-shm
-# 个人真实档案（出生日期等）；demo_user.json 保留作样例
-config/profiles/user.json
+# 个人真实档案经用户明确授权，随私有仓库同步；测试档案仍不入库
 config/profiles/web_test_profile.json
 
-# ── 运行时数据区（抓取产物/职位表缓存，按需本地生成）──
-data/
+# ── 运行时数据区 ───────────────────────────────
+# 上传规范化岗位库、来源状态、可恢复归档和日报；原始附件、日志、数据库仍留本机
+data/*
+!data/jobs.jsonl
+!data/source_health.json
+!data/source_reviews.json
+!data/out/
+data/out/*
+!data/out/archive/
+!data/out/archive/**
+!data/out/*.txt
 backend/data/
 
 # ── 开发草稿 / 联调样本（不入库）────────────────

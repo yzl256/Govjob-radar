@@ -1,0 +1,26 @@
+{
+  "name": "杨镇凌",
+  "birth_date": "2001-03-01",
+  "gender": "男",
+  "political_status": "党员",
+  "fresh_status": "择业期内未落实工作",
+  "is_student_cadre": true,
+  "has_school_award": true,
+  "household_province": "广东省",
+  "origin_province": "广东省",
+  "subscribed_provinces": [
+    "广东省"
+  ],
+  "career_interests": [],
+  "education": [
+    {
+      "level": "硕士",
+      "major_name": "大数据技术与工程",
+      "major_code": "085411",
+      "catalog": "professional",
+      "school": "华南师范大学",
+      "is_double_first_class": true,
+      "graduation_date": "2026-06-30"
+    }
+  ]
+}
