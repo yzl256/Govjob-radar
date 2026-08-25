@@ -64,6 +64,7 @@ class UserProfile(BaseModel):
     household_province: Optional[str] = None  # 户籍省
     origin_province: Optional[str] = None  # 生源省
     subscribed_provinces: List[str] = []  # 订阅省份（驱动 C 类源站按需启用）
+    career_interests: List[str] = []  # 仅扩展国企央企领域推荐，不参与体制内硬匹配
     education: List[EducationRecord] = []
 
     @property

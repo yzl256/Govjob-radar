@@ -77,8 +77,87 @@ class TestWebAPI(unittest.TestCase):
     def test_get_meta_provinces(self):
         status, data = self._get("/api/meta")
         self.assertEqual(status, 200)
-        self.assertEqual(set(data["provinces"]), {"广东省", "山东省", "浙江省"})
+        # 全部省级行政区均可订阅（自主选省份），不限已注册源站的省份
+        self.assertIn("广东省", data["provinces"])
+        self.assertIn("新疆维吾尔自治区", data["provinces"])
+        self.assertEqual(len(data["provinces"]), len(set(data["provinces"])))
+        self.assertEqual(set(data["sources_ready"]), {"广东省", "山东省", "浙江省"})
         self.assertEqual(data["paths"]["2"], "国考")
+
+    def test_no_store_cache_headers(self):
+        """页面无缓存头：版本迭代后浏览器不残留旧版前端。"""
+        with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/", timeout=10) as r:
+            self.assertEqual(r.headers.get("Cache-Control"), "no-store")
+
+    def test_match_province_counts(self):
+        """在招岗位按省份分布：订阅省 0 岗时前端明示原因所依赖的字段。"""
+        status, data = self._post("/api/match", {})
+        self.assertEqual(status, 200)
+        self.assertIn("province_counts", data)
+        self.assertIn("sample_province_counts", data)
+        self.assertIn("store_total", data)
+        self.assertIsInstance(data["province_counts"], dict)
+        self.assertIsInstance(data["sample_province_counts"], dict)
+        for prov, n in data["province_counts"].items():
+            self.assertIsInstance(n, int)
+            self.assertGreater(n, 0)
+
+    def test_sync_status_starts_idle(self):
+        status, data = self._get("/api/sync/status")
+        self.assertEqual(status, 200)
+        self.assertEqual(data["state"], "idle")
+        self.assertEqual(data["sources"], [])
+
+    def test_sync_uses_saved_subscription_and_invalidates_job_cache(self):
+        """立即匹配前的同步必须只按当前档案已订阅省份执行，并使随后匹配重读岗位库。"""
+        import app.pipeline.run_daily as daily
+
+        self._post("/api/profile", {"name": "sync-test", "subscribed_provinces": ["浙江省"], "education": []})
+        called = []
+        original = daily.sync_subscribed_sources
+        daily.sync_subscribed_sources = lambda root, provinces: called.append((root, provinces)) or [
+            {"source_id": "zj-shengkao", "ok": True, "detail": "发现 1 个附件链接", "fetched_items": 1}
+        ]
+        try:
+            Handler.state._jobs_cache = object()
+            status, data = self._post("/api/sync", {})
+        finally:
+            daily.sync_subscribed_sources = original
+
+        self.assertEqual(status, 200)
+        self.assertEqual(called[0][1], ["浙江省"])
+        self.assertEqual(data["provinces"], ["浙江省"])
+        self.assertEqual(data["sources"][0]["source_id"], "zj-shengkao")
+        self.assertIsNone(Handler.state._jobs_cache)
+
+    def test_background_sync_reports_source_progress(self):
+        """新 H5 同步接口应立即接单，并把每个完成来源回传给轮询端。"""
+        import time
+        import app.pipeline.run_daily as daily
+
+        self._post("/api/profile", {"name": "sync-progress", "subscribed_provinces": ["浙江省"], "education": []})
+        original = daily.sync_subscribed_sources
+
+        def fake_sync(root, provinces, llm=None, on_progress=None):
+            row = {"source_id": "zj-shengkao", "ok": True, "detail": "发现 1 个附件链接", "fetched_items": 1}
+            on_progress and on_progress(row, 1, 1)
+            return [row]
+
+        daily.sync_subscribed_sources = fake_sync
+        try:
+            status, data = self._post("/api/sync/start", {})
+            self.assertEqual(status, 202)
+            self.assertEqual(data["provinces"], ["浙江省"])
+            for _ in range(30):
+                _, sync = self._get("/api/sync/status")
+                if sync["state"] != "running":
+                    break
+                time.sleep(0.02)
+        finally:
+            daily.sync_subscribed_sources = original
+
+        self.assertEqual(sync["state"], "done")
+        self.assertEqual(sync["sources"][0]["source_id"], "zj-shengkao")
 
     def test_dfc_endpoint(self):
         status, data = self._get("/api/dfc?school=" + __import__("urllib.parse", fromlist=["quote"]).quote("华南理工"))
@@ -199,8 +278,10 @@ class TestWebAPI(unittest.TestCase):
         status, data = self._post("/api/match", {})
         self.assertEqual(status, 200)
         c = data["counts"]
-        self.assertGreaterEqual(c["jobs_total"], 5)  # 样例职位表至少 5 岗
-        self.assertGreaterEqual(c["eligible"], 1)  # 深圳计算机类岗可报
+        # 正式岗位库不再播种样例数据；当前是否有“可报”由真实公告和用户档案决定，
+        # 因此只固化接口口径，不把历史样例岗位当作测试前提。
+        self.assertIn("jobs_total", c)
+        self.assertIn("unverified_no_deadline", c)
         self.assertIn("archived_expired", c)  # 已截止存档数（岗位库广东选调/三支一扶已过期）
         self.assertNotIn("prep_reference", data)  # 已截止岗位不做参考展示（仅存档计数）
         # 赛道周期看板
@@ -221,6 +302,38 @@ class TestWebAPI(unittest.TestCase):
                     __import__("datetime").date.today().isoformat(),
                     f"过期岗位泄漏到结果: {item['title']}",
                 )
+
+    def test_match_never_leaks_expired_or_result_publication(self):
+        """API 保护线：所有展示分支共享失效过滤；无截止日只进入待核验。"""
+        import app.web.server as web
+        from datetime import date, timedelta
+        from app.models.job import Job
+
+        today = date.today()
+        rows = [
+            Job(id="open", path=4, title="仍在报名岗位", employer="某单位", apply_deadline=today + timedelta(days=2)),
+            Job(id="past", path=4, title="已截止岗位", employer="某单位", apply_deadline=today - timedelta(days=1)),
+            Job(id="result", path=4, title="关于拟录取人员名单公示", employer="某单位"),
+            Job(id="unknown", path=4, title="未写截止日岗位", employer="某单位"),
+        ]
+        original = web._get_jobs
+        web._get_jobs = lambda _state: (rows, 0)
+        try:
+            self._post("/api/profile", {"name": "visibility-test", "education": []})
+            status, data = self._post("/api/match", {})
+        finally:
+            web._get_jobs = original
+
+        self.assertEqual(status, 200)
+        payload = json.dumps(data, ensure_ascii=False)
+        self.assertNotIn("已截止岗位", payload)
+        self.assertNotIn("拟录取人员名单公示", payload)
+        self.assertEqual(data["counts"]["hidden"]["expired"], 1)
+        self.assertEqual(data["counts"]["hidden"]["invalid_result_publication"], 1)
+        self.assertEqual(data["counts"]["jobs_total"], 1)
+        self.assertEqual(data["counts"]["unverified_no_deadline"], 1)
+        self.assertTrue(any(x["title"] == "未写截止日岗位" for x in data["strict"]["pending"]))
+        self.assertFalse(any(x["title"] == "未写截止日岗位" for x in data["strict"]["eligible"]))
 
 
 if __name__ == "__main__":

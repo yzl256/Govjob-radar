@@ -34,6 +34,26 @@ class TestAttachmentLinks(unittest.TestCase):
         links = discover_attachment_links("http://x.com/p/", html)
         self.assertEqual(links, ["http://x.com/a.xlsx", "http://x.com/p/b.xlsx"])
 
+    def test_excel_source_follows_announcement_page_for_attachment(self):
+        """省考入口通常只列公告；职位表挂在公告详情页，不能只扫首页。"""
+        import app.crawler.fetch as fetch
+
+        pages = {
+            "https://example.test/list": '<a href="/notice/1">2026年公务员招考公告</a>'.encode(),
+            "https://example.test/notice/1": '<a href="/files/jobs.xlsx">职位表</a>'.encode(),
+        }
+        seen = []
+        original = fetch.fetch_url
+        fetch.fetch_url = lambda url, timeout=20: seen.append(url) or pages[url]
+        try:
+            source = SimpleNamespace(id="zj-shengkao", entry="https://example.test/list")
+            links = fetch.discover_source_xlsx_links(source)
+        finally:
+            fetch.fetch_url = original
+
+        self.assertEqual(links, ["https://example.test/files/jobs.xlsx"])
+        self.assertEqual(seen, ["https://example.test/list", "https://example.test/notice/1"])
+
 
 class TestZipExtract(unittest.TestCase):
     def test_only_xlsx_members_extracted(self):

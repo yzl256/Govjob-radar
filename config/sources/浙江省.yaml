@@ -32,7 +32,7 @@ sources:
     path: 3
     tier: A
     region: 浙江省
-    entry: http://gwy.zjks.gov.cn/zjgwy/website/      # 已核实：浙江省公务员考试录用网·招考公告栏目
+    entry: http://gwy.zjks.gov.cn/zjgwy/website/init.htm?oldornew=new  # 2026-08-24 核实：旧路径 /zjgwy/website/ 已 404，站点首页为 init.htm
     extractor: excel
     schedule: {daily: 2, peak: hourly}
     season: {peak_month: 11, note: "近年约11月公告、12月-1月笔试"}

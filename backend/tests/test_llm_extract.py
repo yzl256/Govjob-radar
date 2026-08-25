@@ -98,6 +98,14 @@ class TestNormalize(unittest.TestCase):
     def test_not_announcement(self):
         self.assertEqual(normalize_llm_jobs({"is_job_announcement": False, "jobs": []}, "x", 4, CATALOGS), [])
 
+    def test_result_publication_is_rejected_when_llm_misclassifies_it(self):
+        """第二道保护：模型误报招聘时，名单公示仍不得入库。"""
+        response = {
+            "is_job_announcement": True,
+            "jobs": [{"title": "派遣人员名单的公示", "employer": "某单位", "majors": ["不限"]}],
+        }
+        self.assertEqual(normalize_llm_jobs(response, "x", 4, CATALOGS), [])
+
     def test_null_fields_stay_unknown(self):
         resp = {"is_job_announcement": True, "jobs": [{"title": "某岗", "majors": ["不限"]}]}
         j = normalize_llm_jobs(resp, "x", 5, CATALOGS)[0]
@@ -162,6 +170,17 @@ class TestDiscoverLinks(unittest.TestCase):
     def test_limit(self):
         html = "".join(f'<a href="/{i}.shtml">招聘公告{i}</a>' for i in range(20))
         self.assertEqual(len(discover_announcement_links("https://x.gov.cn/", html, limit=8)), 8)
+
+    def test_excludes_result_publications_even_when_they_say_hiring(self):
+        """录取/派遣名单是结果公示，绝不能进入可报名公告抓取队列。"""
+        html = (
+            '<a href="/open.shtml">2026年公开招聘工作人员公告</a>'
+            '<a href="/result.shtml">2026年公开招聘派遣人员名单的公示</a>'
+            '<a href="/admit.shtml">关于公开招聘拟录取人员名单公示</a>'
+            '<a href="/hire.shtml">事业单位拟聘用人员公示</a>'
+        )
+        links = discover_announcement_links("https://x.gov.cn/list/", html)
+        self.assertEqual(links, ["https://x.gov.cn/open.shtml"])
 
 
 class TestExtractFromText(unittest.TestCase):

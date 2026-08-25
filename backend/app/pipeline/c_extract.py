@@ -15,8 +15,9 @@ from app.llm.extract import extract_jobs_from_text
 from app.llm.htmltext import html_to_text
 from app.models.job import Job
 from app.store.jobs import append_jobs, load_jobs
+from app.validity import is_result_publication, is_result_publication_page
 
-# 公告标题锚文本关键词（发现用，宁多勿漏——LLM 侧还有 is_job_announcement 过滤）
+# 公告标题锚文本关键词；结果公示先确定性排除，避免浪费抓取与模型调用。
 _ANNOUNCE_RE = re.compile(
     r"招聘|招录|招考|公开招聘|选调|引进|遴选|文职|聘用|三支一扶|西部计划|特岗|社区工作者|辅导员"
 )
@@ -31,7 +32,7 @@ def discover_announcement_links(page_url: str, html: str, limit: int = 8) -> Lis
     out: List[str] = []
     for m in _HREF_RE.finditer(html):
         href, anchor = m.group(1), _TAG_RE.sub("", m.group(2))
-        if not _ANNOUNCE_RE.search(anchor):
+        if not _ANNOUNCE_RE.search(anchor) or is_result_publication(anchor):
             continue
         absu = urljoin(page_url, href.split("#")[0])
         if absu.startswith("http") and absu not in out and absu != page_url:
@@ -146,6 +147,13 @@ def process_announcement_url(
     text = html_to_text(html)
     if len(text) < 80:
         return None, "页面文本过短（可能是附件直链或 JS 渲染页）"
+    if is_result_publication_page(text, html=html):
+        # 把来源页的确定性结论留下：历史上曾出现“名单附件被解析成逐岗岗位”，
+        # 后续维护即可按同一来源 URL 可恢复地清走这类旧记录。
+        from app.pipeline.source_review import record_source_review
+
+        record_source_review(root, url, "result_publication", "公告正文为结果/名单公示")
+        return 0, "结果/名单公示，已跳过"
 
     # LLM 计划级抽取：拿截止日等公告级信息（也作为无附件时的兜底入库数据）
     plan_deadline = None

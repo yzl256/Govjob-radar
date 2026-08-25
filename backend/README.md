@@ -13,7 +13,7 @@ python -m app.cli demo                    # 端到端演示：生成样例职位
 python -m app.cli daily [--no-fetch] [--watch=21600]
                                           # 单趟/循环流水线：抓取→解析→匹配→落盘→推送
 python -m app.cli serve [--port=8420] [--no-open]
-                                           # H5 界面（档案表单+LLM设置+订阅省份+双页签结果）
+                                           # H5 界面 + 每 6 小时本地维护（可恢复归档）
                                            # 全新环境首次启动自动播种样例职位表并开浏览器
 python -m app.cli extract <url|文件.html> [--source=gd-rcyj] [--path=5]
                                           # C 类公告 LLM 抽取联调（需 LLM Key：H5 右上角齿轮→弹窗保存到 SQLite，
@@ -44,11 +44,14 @@ python -m app.cli match ..\data\inbox\sample_guokao_2027.xlsx ..\config\profiles
 | `app/llm/client.py` | LLM 客户端：OpenAI 兼容（默认 DeepSeek，urllib 零依赖）+ FakeLLM 测试替身 |
 | `app/llm/extract.py` | C 类公告抽取：prompt + JSON 容错解析 + 归一化 Job（专业原文交本地知识层，LLM 不猜代码） |
 | `app/store/jobs.py` | 岗位库 data/jobs.jsonl：追加去重 + 加载（部署机换 PostgreSQL 接口不变） |
+| `app/validity.py` | 统一有效性口径：已截止、录取/派遣等结果公示及已核验无效来源均不进入展示 |
 | `app/store/db.py` | SQLite 持久层 data/govjob.db：`llm_config`（齿轮弹窗保存的供应商/Key/模型，base_url 由后端注册表解析）+ `user_profile`（个人档案，JSON 文档列；WAL + 短连接；旧库自动迁移） |
 | `app/pipeline/c_extract.py` | C 源编排：入口页→公告链接发现→抽取→入库 |
 | `app/scheduler/sources.py` | 源站注册表加载（全国恒启 + 按订阅省份启用）+ 健康记录 |
 | `app/pipeline/daily.py` | 日报管道：匹配 → 三态分组 → 可渲染报告 |
 | `app/pipeline/run_daily.py` | 单趟流水线：抓取(best-effort)→inbox 解析→匹配→落盘→推送 |
+| `app/pipeline/maintenance.py` | 同步完成、日报及 8420 常驻服务复用的可恢复归档维护 |
+| `app/pipeline/source_review.py` | 低频复核公告标题，识别“职位表其实来自结果公示”的历史数据 |
 | `app/notify/` | Console / Server酱(微信) / SMTP邮件 适配器 |
 | `app/web/server.py` | 零依赖 Web 服务（stdlib http + pydantic 校验，API 薄可平移 FastAPI） |
 | `app/cli.py` | `demo` / `daily` / `serve` / `test-notify` / `match` 命令 |
@@ -73,7 +76,7 @@ python -m app.cli match ..\data\inbox\sample_guokao_2027.xlsx ..\config\profiles
 5. **双一流自动识别**：档案只填校名即可——引擎查官方 147 所名单（第二轮，2022）自动判定；`人大`/`哈工大`/`西电`等简称、全半角括号、更名前后校名（第二/四军医大学、上海体育大学）均可命中；独立学院（"浙江大学城市学院"）绝不因母体误判；查不到一律 ⚠️"核对校名全称"而非 ❌。H5 院校输入框实时显示 🎓 徽标。
 6. **C 类 LLM 抽取的分权原则**：LLM 只做"从公告原文抄写"（含 evidence 引文），专业代码语义、目录归属、类族映射全部由本地确定性知识层解析——LLM 输出 `0854 电子信息` 原文片段，本地才把它变成可匹配的规则。找不到的字段一律 null → ⚠️。岗位 id 由 source_id+URL 哈希稳定生成，重复公告自动去重。
 7. **两桶分层（可投递 vs 备考）**：岗位按截止日二分（`split_by_deadline`）——H5「✅ 可报名投递」页只展示截止日 ≥ 今天的岗位（http 来源出「公告原文 ↗」链接，inbox 本地职位表出「来源职位表：文件名」）；「📚 备考看板」页只放赛道周期看板（`track_board`：🟢 滚动可投 / 📚 备考期 + 窗口倒计时），**已截止岗位不做参考展示**（仅 `archived_expired` 计数）。窗口时间为广东历年规律估计，以当年公告为准。
-8. **有效期过滤**：`filter_active_jobs`——日报与 H5「可投递」页只展示截止日 ≥ 今天的岗位（当天截止仍可报；无截止日保留，无法判定不误删）；过期岗位留在岗位库存档，绝不进入可投递列表。
+8. **有效期与结果公示过滤**：日报与 H5 会同时拦截截止日早于今天、录取/派遣/拟聘等结果公示及已核验的无效来源；无截止日岗位不自动删除，但只进入「值得核验」，不参加优先投递。同步完成、日报运行和 8420 每 6 小时维护都会把有确定性失效证据的岗位移入 `data/out/archive/jobs_YYYY-MM.jsonl`，可恢复、不删原始附件。
 9. **职位表附件展开**：公告页的 xlsx 直链/zip 附件包自动下载到 `data/attachments/`（机器管理区，与用户手动投放的 `data/inbox` 严格分离——否则会被 inbox 扫描二次解析成无截止日副本），通用职位表解析器逐岗展开，LLM 只负责回填计划级截止日。id 用岗位代码内容寻址（改版/重跑不撞车）。省级自编目录代码（如广东 A01/B02）按原文进 TEXT 规则判 ⚠️，绝不瞎猜成 ✅/❌。
 
 ## 已知种子限制（import 脚本待做）

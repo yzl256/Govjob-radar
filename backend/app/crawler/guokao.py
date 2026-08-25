@@ -279,6 +279,7 @@ def parse_guokao_workbook(
                     fresh_only=fresh,
                     apply_deadline=apply_deadline,
                     quota=_to_int(_cell(row, cols.get("quota"))),
+                    verification_status="verified",  # 职位表已逐岗解析，可做硬条件核验
                     other_notes=notes,
                     source_url=source_url,
                 )

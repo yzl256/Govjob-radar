@@ -16,6 +16,11 @@ _MIN_INTERVAL = 10.0  # 同主机两次请求最小间隔（秒）
 _last_hit: Dict[str, float] = {}
 
 _XLSX_HREF_RE = re.compile(r"""href\s*=\s*["']([^"']+?\.(?:xlsx|xls))["']""", re.I)
+_HREF_RE = re.compile(r"""<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>(.*?)</a>""", re.I | re.S)
+_TAG_RE = re.compile(r"<[^>]+>")
+_ANNOUNCEMENT_RE = re.compile(
+    r"招聘|招录|招考|公务员|公开招聘|选调|引进|遴选|文职|聘用|三支一扶|西部计划|特岗|社区工作者|辅导员"
+)
 
 
 def _polite_wait(host: str) -> None:
@@ -49,6 +54,42 @@ def discover_xlsx_links(page_url: str, html: bytes) -> List[str]:
     return links
 
 
+def discover_source_xlsx_links(source, notice_limit: int = 3) -> List[str]:
+    """发现 A 类职位表。
+
+    入口页通常只列公告、职位表挂在详情页；先查入口直链，未命中时再跟进少量
+    含招考关键词的公告页。只返回链接，不下载，方便调用方保留现有下载限额。
+    """
+    if not source.entry:
+        return []
+    entry_html = fetch_url(source.entry)
+    direct = discover_xlsx_links(source.entry, entry_html)
+    if direct:
+        return direct
+
+    text = entry_html.decode("utf-8", errors="ignore")
+    notice_urls: List[str] = []
+    for match in _HREF_RE.finditer(text):
+        href, anchor = match.group(1), _TAG_RE.sub("", match.group(2))
+        if not _ANNOUNCEMENT_RE.search(anchor):
+            continue
+        url = urljoin(source.entry, href.split("#", 1)[0])
+        if url.startswith("http") and url != source.entry and url not in notice_urls:
+            notice_urls.append(url)
+        if len(notice_urls) >= notice_limit:
+            break
+
+    links: List[str] = []
+    for url in notice_urls:
+        try:
+            for link in discover_xlsx_links(url, fetch_url(url)):
+                if link not in links:
+                    links.append(link)
+        except Exception:
+            continue
+    return links
+
+
 def download_attachment(
     url: str, dest_dir: Path, source_id: str, referer: str = ""
 ) -> Optional[Path]:
@@ -74,10 +115,9 @@ def harvest_source(
     if not source.entry:
         return False, "未配置入口 URL", []
     try:
-        html = fetch_url(source.entry)
+        links = discover_source_xlsx_links(source)
     except Exception as e:
         return False, f"入口页抓取失败: {type(e).__name__}: {e}", []
-    links = discover_xlsx_links(source.entry, html)
     files: List[Path] = []
     for link in links[:5]:  # 单源单次最多 5 个附件，防爆量
         try:

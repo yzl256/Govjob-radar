@@ -94,6 +94,12 @@ class Job(BaseModel):
     quota: Optional[int] = None
     exam_type: Optional[int] = None  # 1笔试 2免笔试直接面试
     highlights: str = ""
+    responsibilities: str = ""  # 国企职责/培养方向，必须来自公告原文或忠实摘要
+    compensation: str = ""  # 待遇；未披露保持空
+    application_url: str = ""  # 网申/报名入口
+    application_process: str = ""  # 笔试/面试/资格审查等公告原文
+    verification_status: str = "pending"  # verified=已有岗位表或完整条件；pending=公告待核验
+    verification_note: str = ""
     other_notes: str = ""  # 未结构化的其他条件，透出给用户"以原文为准"
     source_url: str = ""
 

@@ -43,12 +43,26 @@ class TestLoadSources(unittest.TestCase):
 
 class TestLoadProfiles(unittest.TestCase):
     def test_load_user_profile(self):
-        profiles = load_profiles(ROOT)
-        names = [p.get("name") for p in profiles]
-        self.assertIn("user", names)
-        user = next(p for p in profiles if p["name"] == "user")
-        self.assertEqual(user["education"][0]["major_code"], "085411")
-        self.assertEqual(user["subscribed_provinces"], ["广东省", "山东省", "浙江省"])
+        """用临时目录隔离：config/profiles/user.json 是用户实时编辑的文件，内容不可断言。"""
+        import json
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            pdir = Path(td) / "config" / "profiles"
+            pdir.mkdir(parents=True)
+            (pdir / "user.json").write_text(json.dumps({
+                "name": "user",
+                "education": [{"level": "硕士", "major_code": "085411"}],
+                "subscribed_provinces": ["广东省", "山东省", "浙江省"],
+            }, ensure_ascii=False), encoding="utf-8")
+            (pdir / "broken.json").write_text("{oops", encoding="utf-8")  # 坏文件跳过不炸
+
+            profiles = load_profiles(Path(td))
+            names = [p.get("name") for p in profiles]
+            self.assertIn("user", names)
+            user = next(p for p in profiles if p["name"] == "user")
+            self.assertEqual(user["education"][0]["major_code"], "085411")
+            self.assertEqual(user["subscribed_provinces"], ["广东省", "山东省", "浙江省"])
 
 
 if __name__ == "__main__":

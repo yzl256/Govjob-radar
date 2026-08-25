@@ -15,6 +15,7 @@ from app.knowledge.catalogs import Catalog
 from app.knowledge.major_parse import parse_major_cell
 from app.models.job import EduRequire, Job, MajorPolicy, MajorRule
 from app.models.profile import EduLevel, PoliticalStatus
+from app.validity import is_result_publication
 
 SYSTEM_PROMPT = """你是体制内招聘公告结构化抽取器。只依据用户提供的公告文本抽取，禁止编造；文本中找不到的字段一律填 null。
 
@@ -46,6 +47,7 @@ SYSTEM_PROMPT = """你是体制内招聘公告结构化抽取器。只依据用�
 
 字段口径：
 - is_job_announcement：页面不是招聘/招录公告时 false 且 jobs 为空数组。
+- 已录取/拟录取/拟录用/拟聘用、派遣人员名单、体检或考察名单等结果公示不是招聘公告，必须输出 false。
 - edu_min：公告明确的最低学历层次，只能取 大专/本科/硕士/博士 之一；未提及填 null。
 - majors：把专业要求原文片段逐条照抄进数组（保留原有代码和名称，不要自行换算代码）；
   "不限"/"专业不限"/"专业方向不限" 时输出 ["不限"]；未提及专业要求输出 []。
@@ -141,6 +143,13 @@ def normalize_llm_jobs(
     jobs: List[Job] = []
     for raw in data.get("jobs") or []:
         try:
+            # 即使模型误判为招聘，也不能让明确的结果公示进入岗位库。
+            evidence = raw.get("evidence") or {}
+            result_text = " ".join(
+                str(x or "") for x in (raw.get("title"), evidence.get("title") if isinstance(evidence, dict) else "")
+            )
+            if is_result_publication(result_text):
+                continue
             jobs.append(_build_one(raw, source_id, path, catalogs, source_url or url))
         except Exception:
             continue
@@ -178,6 +187,12 @@ def _build_one(raw: dict, source_id: str, path: int, catalogs, url: str) -> Job:
         apply_deadline=_parse_date_flex(raw.get("apply_deadline")),
         quota=raw.get("quota") if isinstance(raw.get("quota"), int) else None,
         highlights="",
+        responsibilities=str(raw.get("responsibilities") or "").strip(),
+        compensation=str(raw.get("compensation") or raw.get("highlights") or "").strip(),
+        application_url=str(raw.get("application_url") or "").strip(),
+        application_process=str(raw.get("application_process") or "").strip(),
+        verification_status="pending",
+        verification_note="公告级抽取，尚未取得逐岗职位表或完整资格字段",
         other_notes=(f"LLM 抽取自公告。证据：{evid_txt}" if evid_txt else "LLM 抽取自公告"),
         source_url=raw.get("source_url") or url,
     )
